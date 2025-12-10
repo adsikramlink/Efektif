@@ -1,19 +1,18 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mining Dashboard v25</title>
+    <title>Mining App v26 (Final)</title>
     <style>
-        /* --- CSS MODERN --- */
-        :root { --primary: #4f46e5; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; }
+        /* --- CSS MODERN v26 --- */
+        :root { --primary: #1e40af; /* GANTI BIRU TUA AGAR KELIHATAN BEDA */ --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; height: 100vh; overflow: hidden; }
 
-        /* LOADER */
-        #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 999; display: flex; justify-content: center; align-items: center; flex-direction: column; color: white; font-weight: bold; backdrop-filter: blur(4px); }
-        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        /* LOADER BARU (HITAM) */
+        #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 999; display: flex; justify-content: center; align-items: center; flex-direction: column; color: white; font-weight: bold; backdrop-filter: blur(5px); }
+        .spinner { border: 4px solid #333; border-top: 4px solid #fff; border-radius: 50%; width: 50px; height: 50px; animation: spin 0.8s linear infinite; margin-bottom: 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         /* LAYOUT */
@@ -27,7 +26,6 @@
         .card-header { background: #f1f5f9; padding: 10px 16px; border-bottom: 1px solid var(--border); font-weight: 700; font-size: 12px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; display:flex; justify-content:space-between; align-items:center; }
         .card-body { padding: 16px; }
         
-        /* INPUTS */
         label { display: block; font-size: 10px; font-weight: 700; color: #64748b; margin-bottom: 4px; text-transform: uppercase; }
         .input-std { width: 100%; background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px; font-size: 14px; font-weight: 600; }
         .input-under { width: 100%; border: none; border-bottom: 2px solid #e2e8f0; padding: 6px 0; font-size: 14px; background: transparent; transition: 0.2s; }
@@ -38,19 +36,18 @@
         .chip-div { padding: 5px 12px; border-radius: 20px; border: 1px solid #cbd5e1; background: #fff; color: #64748b; font-size: 11px; font-weight: 700; transition: 0.2s; position: relative; z-index: 1; }
         .chip-label input:checked + .chip-div { background-color: var(--primary); color: white; border-color: var(--primary); }
 
-        /* SDT NEW LAYOUT */
+        /* SDT ROW */
         .sdt-row { display: flex; align-items: center; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 4px 8px; margin-bottom: 6px; gap: 8px; height: 42px; }
-        .sdt-unit { font-size: 11px; font-weight: 800; color: var(--primary); background: #e0e7ff; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
+        .sdt-unit { font-size: 11px; font-weight: 800; color: var(--primary); background: #dbeafe; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
         .sdt-select { flex: 2; border: none; background: transparent; font-size: 12px; font-weight: 600; width: 100%; }
-        /* TRIP DIPERLEBAR, KET DIPERKECIL */
         .sdt-trip { width: 60px; border: none; background: #f1f5f9; text-align: center; font-size: 12px; font-weight: 700; padding: 6px 2px; border-radius: 4px; }
         .sdt-ket { flex: 1; border: none; background: transparent; font-size: 11px; color: #ef4444; font-style: italic; min-width: 0; text-align:right; }
         .sdt-del { border: none; background: transparent; color: #cbd5e1; font-size: 16px; font-weight: bold; padding: 0 4px; }
 
-        /* TIME & HAULING */
         .grid-time { display: grid; grid-template-columns: 20px 1fr 1fr 20px; gap: 6px; align-items: center; margin-bottom: 6px; }
         .time-box { display: flex; align-items: center; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; background: white; }
         .time-inp { width: 50%; border: none; text-align: center; font-weight: 700; font-size: 13px; padding: 6px 0; }
+
         .pt-row { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 8px; margin-bottom: 8px; }
         .pt-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 12px; font-weight: 800; color: #334155; }
         .pt-grid { display: grid; grid-template-columns: 20px 1fr 1fr 30px; gap: 6px; align-items: center; margin-bottom: 4px; font-size: 11px; }
@@ -58,11 +55,11 @@
         .pt-dot { width: 8px; height: 8px; border-radius: 50%; }
         .bg-0 { background: orange; } .bg-1 { background: green; } .bg-2 { background: #eab308; }
 
-        /* UTILS */
         .row { display: flex; gap: 10px; } .col { flex: 1; }
-        .fab { position: fixed; bottom: 24px; right: 24px; background: var(--primary); color: white; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4); border: none; z-index: 100; }
+        .fab { position: fixed; bottom: 24px; right: 24px; background: var(--primary); color: white; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 15px rgba(30, 64, 175, 0.4); border: none; z-index: 100; }
         .btn-act { width: 100%; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 12px; border: none; margin-top: 8px; cursor: pointer; }
         .btn-blue { background: #eff6ff; color: var(--primary); border: 1px solid #bfdbfe; }
+        
         .tabs { display: flex; background: #f1f5f9; padding: 3px; border-radius: 6px; gap: 3px; margin-bottom: 10px; }
         .tab { flex: 1; padding: 6px; text-align: center; font-size: 11px; font-weight: 700; color: #64748b; border-radius: 4px; border: none; background: transparent; }
         .tab.active { background: white; color: var(--primary); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
@@ -74,11 +71,11 @@
 </head>
 <body>
 
-    <div id="loader" class="hidden"><div class="spinner"></div><div id="loader-msg">Menghubungkan Server...</div></div>
+    <div id="loader" class="hidden"><div class="spinner"></div><div>Sedang Mengirim ke Google Sheet...</div><div style="font-size:10px; margin-top:5px; opacity:0.7">Jangan tutup aplikasi</div></div>
 
     <div id="page-home" class="page active">
         <div class="navbar">
-            <div><div style="font-weight:700">Mining Dashboard</div><div style="font-size:10px; opacity:0.7">v25.0 Connected</div></div>
+            <div><div style="font-weight:700">Mining Dashboard</div><div style="font-size:10px; opacity:0.7; color:#bfdbfe;">v26.0 (Wajib Refresh)</div></div>
             <button onclick="nav('settings')" style="background:none; border:none; font-size:20px;">⚙️</button>
         </div>
         <div class="container">
@@ -92,7 +89,7 @@
         <div class="navbar">
             <button onclick="nav('home')" style="background:none; border:none; color:white; font-weight:600">← Tutup</button>
             <div style="font-weight:700">Input Data</div>
-            <button onclick="uploadToSheet()" style="background:#22c55e; border:none; color:white; padding:6px 12px; border-radius:6px; font-weight:700; font-size:11px">KIRIM</button>
+            <button onclick="uploadToSheet()" style="background:#1e3a8a; border:none; color:white; padding:6px 12px; border-radius:6px; font-weight:700; font-size:11px">KIRIM</button>
         </div>
         <div class="container">
             <div class="card"><div class="card-header">0. Operasional</div><div class="card-body">
@@ -107,7 +104,7 @@
                 <button onclick="addTimeRow()" class="btn-act btn-blue" style="border-style:dashed">+ Tambah Jam</button>
                 <div class="row" style="margin-top:16px; padding-top:10px; border-top:1px solid #f1f5f9; text-align:center;"><div class="col"><div style="font-size:9px; color:#94a3b8; font-weight:bold">TOTAL JAM</div><div id="res-val" style="font-size:16px; font-weight:900; color:#334155">-</div></div><div class="col"><div style="font-size:9px; color:#94a3b8; font-weight:bold">EFEKTIVITAS</div><div id="eff-val" style="font-size:12px; font-weight:bold; color:#334155">-</div></div></div>
             </div></div>
-            <div class="card"><div class="card-header">2. Perhitungan Unit & Trip</div><div class="card-body"><div id="hauling-rows"></div><div style="background:#f1f5f9; padding:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-top:10px;"><span style="font-weight:bold; color:#64748b; font-size:11px">TOTAL HAULING</span><span id="grand-total" style="font-weight:900; color:var(--primary); font-size:20px;">0</span></div></div></div>
+            <div class="card"><div class="card-header">2. Perhitungan Unit & Trip</div><div class="card-body"><div id="hauling-rows"></div><div style="background:#f1f5f9; padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-top:12px;"><span style="font-weight:bold; color:#64748b; font-size:11px">TOTAL HAULING</span><span id="grand-total" style="font-weight:900; color:var(--primary); font-size:20px;">0</span></div></div></div>
             <div class="card"><div class="card-header"><span>3. Unit SDT Running</span><button onclick="nav('settings')" style="font-size:10px; color:var(--primary); background:none; border:none; font-weight:bold">+ MASTER</button></div><div class="card-body">
                 <label>PILIH UNIT:</label><div id="box-unit-btns" style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:12px;"></div><div id="sdt-list"></div><div id="sdt-empty" style="text-align:center; padding:20px; color:#cbd5e1; font-style:italic; border:1px dashed #e2e8f0; border-radius:8px; font-size:11px;">Belum ada unit dipilih</div>
             </div></div>
@@ -142,10 +139,11 @@
 
     <script>
         // ===============================================
-        //  URL DITANAM LANGSUNG (LINK BAPAK TERAKHIR)
+        //  URL BARU SUDAH DITANAM
         // ===============================================
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxE-73qlG4r0y35H_aTQt6op6YYC9iVtp1pJG1dGqL2CSowDe4cZA_YbobA9k0utYEjCQ/exec"; 
-        
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbysDgSQ5FiJCAuzgJqU2Byf1CdF60nPVlZObZ6PNxfkHVVW0iokzYyhQcvGedF3n8pS6w/exec";
+        // ===============================================
+
         const DEF = {
             spv: ['Ihsan R', 'Dicky F', 'Sopian'],
             frm: ['Gunawan TC', 'Hardiansyah', 'Lewi S', 'Elimelek J'],
@@ -158,10 +156,7 @@
 
         let masters={}, activeConv='', convData={}, sdtData=[], currentId=null;
 
-        window.onload = () => { 
-            try { loadMasters(); loadHistoryList(); document.getElementById('inpDate').valueAsDate=new Date(); }
-            catch(e) { alert("Data error. Silakan Reset Aplikasi di Pengaturan."); }
-        };
+        window.onload = () => { loadMasters(); loadHistoryList(); document.getElementById('inpDate').valueAsDate=new Date(); };
 
         function nav(p) { document.querySelectorAll('.page').forEach(e=>e.classList.remove('active')); document.getElementById(`page-${p}`).classList.add('active'); if(p==='settings')renderSettings(); if(p==='home')loadHistoryList(); }
         function openForm(id=null) { currentId=id; nav('form'); renderFormUI(); if(id)loadFormData(id); else resetForm(); }
@@ -178,12 +173,10 @@
         function renderFormUI() {
             const renC = (id,l) => document.getElementById(id).innerHTML=l.map(t=>`<label class="chip-label"><input type="checkbox" value="${t}" class="hidden"><div class="chip-div">${t}</div></label>`).join('');
             renC('box-spv',masters.spv); renC('box-frm',masters.frm); renC('box-chk',masters.chk);
-            
             if(!masters.conv || masters.conv.length === 0) masters.conv = ['SD1'];
             document.getElementById('conv-tabs').innerHTML=masters.conv.map(c=>`<button onclick="switchConv('${c}')" id="tab-${c}" class="tab">${c}</button>`).join('');
             document.getElementById('conv-contents').innerHTML=masters.conv.map(c=>`<div id="cont-${c}" class="hidden"></div>`).join('');
             masters.conv.forEach(c=>{ if(!convData[c])convData[c]=[]; }); if(masters.conv.length>0)switchConv(masters.conv[0]);
-            
             document.getElementById('hauling-rows').innerHTML=masters.pt.map((pt,i)=>`<div class="pt-row"><div class="pt-head"><span class="pt-dot bg-${i%3}"></span><span>${pt}</span></div><div class="pt-grid" style="color:#94a3b8; text-align:center;"><div></div><div>UNIT</div><div>TRIP</div><div>HSL</div></div><div class="pt-grid"><div>☀️</div><input type="number" id="run-s-${pt}" class="pt-inp" placeholder="0" oninput="calcHauling('${pt}')"><input type="number" id="trip-s-${pt}" class="pt-inp" placeholder="0" oninput="calcHauling('${pt}')"><div id="res-s-${pt}" style="font-weight:900;text-align:center">0</div></div><div class="pt-grid"><div>🌙</div><input type="number" id="run-m-${pt}" class="pt-inp" placeholder="0" oninput="calcHauling('${pt}')"><input type="number" id="trip-m-${pt}" class="pt-inp" placeholder="0" oninput="calcHauling('${pt}')"><div id="res-m-${pt}" style="font-weight:900;text-align:center">0</div></div></div>`).join('');
             document.getElementById('box-unit-btns').innerHTML=masters.unit.map(u=>`<button onclick="addSdt('${u}')" style="background:#eff6ff;border:1px solid #bfdbfe;font-size:10px;padding:4px 8px;border-radius:4px;font-weight:bold;color:#2563eb;cursor:pointer;">${u}</button>`).join('');
         }
@@ -202,7 +195,6 @@
             if(sdtData.length===0){c.innerHTML='';document.getElementById('sdt-empty').style.display='block';return;} 
             document.getElementById('sdt-empty').style.display='none'; 
             const o=`<option value="">Supir...</option>`+masters.driver.map(d=>`<option value="${d}">${d}</option>`).join(''); 
-            
             c.innerHTML=sdtData.map((d,i)=>`
                 <div class="sdt-row">
                     <div class="sdt-unit">${d.unit}</div>
@@ -215,7 +207,6 @@
         }
 
         function ambilDataForm() {
-            // SAFE GET CHIPS
             const getC = (id) => Array.from(document.querySelectorAll(`#${id} input:checked`)).map(e => e.nextElementSibling.innerText);
             const val = (id) => document.getElementById(id).value;
             let ptD={}, tTrip=0; 
@@ -248,16 +239,50 @@
             };
         }
 
-        function manualSave() { 
-            try { simpanKeLS(ambilDataForm()); alert('Tersimpan Lokal!'); nav('home'); }
-            catch(e) { alert("Error Simpan: " + e.message); }
+        // --- ANTI MACET UPLOAD ---
+        function uploadToSheet() {
+            try {
+                const data = ambilDataForm();
+                simpanKeLS(data); 
+                
+                document.getElementById('loader').classList.remove('hidden');
+                
+                // TIMEOUT 3 DETIK (SUPER CEPAT)
+                const timer = setTimeout(() => {
+                    document.getElementById('loader').classList.add('hidden');
+                    alert("Terkirim! (Jika tidak masuk Sheet, cek sinyal)");
+                    nav('home');
+                }, 3000);
+
+                fetch(GOOGLE_SCRIPT_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "text/plain" },
+                    body: JSON.stringify(data)
+                })
+                .then(() => {
+                    clearTimeout(timer);
+                    document.getElementById('loader').classList.add('hidden');
+                    alert("Sukses!");
+                    nav('home');
+                })
+                .catch(e => {
+                    clearTimeout(timer);
+                    document.getElementById('loader').classList.add('hidden');
+                    alert("Error Jaringan (Data tetap aman di HP)");
+                });
+            } catch(e) {
+                alert("Error Script: " + e.message);
+            }
         }
-        function simpanKeLS(d) { let h=JSON.parse(localStorage.getItem('m_v25')||'[]'); const i=h.findIndex(x=>x.id===d.id); if(i>-1)h[i]=d; else {h.unshift(d); currentId=d.id;} localStorage.setItem('m_v25',JSON.stringify(h)); }
-        function loadHistoryList() { const h=JSON.parse(localStorage.getItem('m_v25')||'[]'); document.getElementById('history-list').innerHTML=h.map(d=>`<div class="hist-item" onclick="openForm(${d.id})"><div><div style="font-weight:700">${d.date||'Tanpa Tanggal'}</div><div style="font-size:11px; color:#64748b; margin-top:2px;">${d.shift} | ${d.total_haul||0} Trip</div></div><button onclick="delHist(event,${d.id})" style="color:#ef4444; border:none; background:none; font-weight:bold; font-size:16px;">🗑️</button></div>`).join(''); document.getElementById('empty-msg').style.display=h.length?'none':'block'; }
-        function delHist(e,id) { e.stopPropagation(); if(confirm('Hapus?')){ let h=JSON.parse(localStorage.getItem('m_v25')||'[]'); h=h.filter(x=>x.id!==id); localStorage.setItem('m_v25',JSON.stringify(h)); loadHistoryList(); } }
+
+        function manualSave() { simpanKeLS(ambilDataForm()); alert('Tersimpan Lokal!'); nav('home'); }
+        function simpanKeLS(d) { let h=JSON.parse(localStorage.getItem('m_v26')||'[]'); const i=h.findIndex(x=>x.id===d.id); if(i>-1)h[i]=d; else {h.unshift(d); currentId=d.id;} localStorage.setItem('m_v26',JSON.stringify(h)); }
+        function loadHistoryList() { const h=JSON.parse(localStorage.getItem('m_v26')||'[]'); document.getElementById('history-list').innerHTML=h.map(d=>`<div class="hist-item" onclick="openForm(${d.id})"><div><div style="font-weight:700">${d.date||'Tanpa Tanggal'}</div><div style="font-size:11px; color:#64748b; margin-top:2px;">${d.shift} | ${d.total_haul||0} Trip</div></div><button onclick="delHist(event,${d.id})" style="color:#ef4444; border:none; background:none; font-weight:bold; font-size:16px;">🗑️</button></div>`).join(''); document.getElementById('empty-msg').style.display=h.length?'none':'block'; }
+        function delHist(e,id) { e.stopPropagation(); if(confirm('Hapus?')){ let h=JSON.parse(localStorage.getItem('m_v26')||'[]'); h=h.filter(x=>x.id!==id); localStorage.setItem('m_v26',JSON.stringify(h)); loadHistoryList(); } }
         
         function loadFormData(id) { 
-            const d=JSON.parse(localStorage.getItem('m_v25')).find(x=>x.id===id); if(!d)return; resetForm(); 
+            const d=JSON.parse(localStorage.getItem('m_v26')).find(x=>x.id===id); if(!d)return; resetForm(); 
             document.getElementById('inpDate').value=d.date; document.getElementById('inpShift').value=d.shift;
             
             const checkC = (bid, str) => { if(str) { const arr=str.split(', '); document.querySelectorAll(`#${bid} input`).forEach(i=>{ if(arr.includes(i.nextElementSibling.innerText)) i.checked=true; }); } };
@@ -278,46 +303,6 @@
             sdtData=[]; renderSdt(); 
             masters.pt.forEach(p=>{const s=document.getElementById(`res-s-${p}`),m=document.getElementById(`res-m-${p}`);if(s)s.innerText='0';if(m)m.innerText='0';}); 
             document.getElementById('grand-total').innerText="0"; 
-        }
-
-        // --- UPLOAD FUNCTION DENGAN ERROR CATCHING ---
-        function uploadToSheet() {
-            try {
-                const data = ambilDataForm();
-                simpanKeLS(data); 
-                
-                const loader = document.getElementById('loader');
-                const loaderMsg = document.getElementById('loader-msg');
-                loader.classList.remove('hidden');
-                loaderMsg.innerText = "Mengirim...";
-                
-                // TIMEOUT 5 DETIK
-                const timer = setTimeout(() => {
-                    loader.classList.add('hidden');
-                    alert("Koneksi Lambat/Macet. Data sudah tersimpan di HP.");
-                    nav('home');
-                }, 5000);
-
-                fetch(GOOGLE_SCRIPT_URL, {
-                    method: "POST",
-                    mode: "no-cors",
-                    headers: { "Content-Type": "text/plain" },
-                    body: JSON.stringify(data)
-                })
-                .then(() => {
-                    clearTimeout(timer);
-                    loader.classList.add('hidden');
-                    alert("Data Terkirim ke Server!");
-                    nav('home');
-                })
-                .catch(error => {
-                    clearTimeout(timer);
-                    loader.classList.add('hidden');
-                    alert("Gagal Kirim: " + error);
-                });
-            } catch (e) {
-                alert("Error Sistem: " + e.message);
-            }
         }
 
         function copyReport(isMalam) {
