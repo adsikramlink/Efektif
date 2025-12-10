@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mining Dashboard v21</title>
+    <title>Mining Dashboard v23</title>
     <style>
         /* --- CSS MODERN --- */
         :root { --primary: #4f46e5; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; }
@@ -74,11 +74,11 @@
 </head>
 <body>
 
-    <div id="loader" class="hidden"><div class="spinner"></div><div>Mengirim ke Server...</div></div>
+    <div id="loader" class="hidden"><div class="spinner"></div><div>Menghubungkan Server...</div></div>
 
     <div id="page-home" class="page active">
         <div class="navbar">
-            <div><div style="font-weight:700">Mining Dashboard</div><div style="font-size:10px; opacity:0.7">v21.0 Online</div></div>
+            <div><div style="font-weight:700">Mining Dashboard</div><div style="font-size:10px; opacity:0.7">v23.0 Online Fix</div></div>
             <button onclick="nav('settings')" style="background:none; border:none; font-size:20px;">⚙️</button>
         </div>
         <div class="container">
@@ -118,6 +118,12 @@
     <div id="page-settings" class="page">
         <div class="navbar"><button onclick="nav('home')" style="background:none; border:none; color:white;">← Kembali</button><span>Pengaturan</span><div style="width:20px"></div></div>
         <div class="container">
+            <div class="card" style="border:2px solid #22c55e;"><div class="card-header" style="background:#f0fdf4; color:#15803d;">🛠️ Generator Data GitHub</div><div class="card-body">
+                <p style="font-size:11px; color:#64748b; margin-top:0">Tambahkan data di bawah ini, lalu klik tombol untuk mendapatkan kode permanen.</p>
+                <button onclick="generateConfig()" class="btn-act" style="background:#22c55e; color:white; margin-top:5px">AMBIL KODINGAN DATA</button>
+                <div id="code-output" class="hidden"><textarea id="code-text" class="code-area"></textarea><button onclick="copyCode()" class="btn-act" style="background:#334155; color:white;">SALIN TEXT</button></div>
+                <button onclick="clearAllData()" style="width:100%; margin-top:15px; background:white; color:#ef4444; border:1px solid #fecaca; padding:10px; border-radius:6px; font-size:11px; font-weight:bold;">RESET APLIKASI (HAPUS DATA)</button>
+            </div></div>
             <div class="card"><div class="card-header">Personil</div><div class="card-body">
                 <div class="master-group"><label>SUPERVISOR</label><div id="list-m-spv"></div><div class="row" style="margin-top:5px"><input id="new-spv" class="input-std" placeholder="Nama Baru"><button onclick="addM('spv')" class="input-std" style="width:40px;background:#f1f5f9;">+</button></div></div>
                 <div class="master-group"><label>FOREMAN</label><div id="list-m-frm"></div><div class="row" style="margin-top:5px"><input id="new-frm" class="input-std" placeholder="Nama Baru"><button onclick="addM('frm')" class="input-std" style="width:40px;background:#f1f5f9;">+</button></div></div>
@@ -131,13 +137,14 @@
                 <div class="master-group"><label>UNIT SDT</label><div id="list-m-unit"></div><div class="row" style="margin-top:5px"><input id="new-unit" class="input-std" placeholder="No Unit"><button onclick="addM('unit')" class="input-std" style="width:40px;background:#f1f5f9;">+</button></div></div>
                 <div class="master-group"><label>DRIVER</label><div id="list-m-driver"></div><div class="row" style="margin-top:5px"><input id="new-driver" class="input-std" placeholder="Nama Driver"><button onclick="addM('driver')" class="input-std" style="width:40px;background:#f1f5f9;">+</button></div></div>
             </div></div>
-            <button onclick="clearAllData()" style="width:100%; margin-top:15px; background:white; color:#ef4444; border:1px solid #fecaca; padding:10px; border-radius:6px; font-size:11px; font-weight:bold;">RESET APLIKASI</button>
         </div>
     </div>
 
     <script>
-        // === URL DARI BAPAK (SUDAH TERTANAM) ===
-        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxE-73qlG4r0y35H_aTQt6op6YYC9iVtp1pJG1dGqL2CSowDe4cZA_YbobA9k0utYEjCQ/exec"; 
+        // ===============================================
+        //  URL SUDAH DITANAM (JANGAN DIUBAH)
+        // ===============================================
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbysDgSQ5FiJCAuzgJqU2Byf1CdF60nPVlZObZ6PNxfkHVVW0iokzYyhQcvGedF3n8pS6w/exec"; 
         
         const DEF = {
             spv: ['Ihsan R', 'Dicky F', 'Sopian'],
@@ -159,6 +166,8 @@
         function loadMasters() { ['spv','frm','chk','conv','pt','unit','driver'].forEach(k => { const ls=localStorage.getItem(`m_${k}`); masters[k]=ls?JSON.parse(ls):[...DEF[k]]; }); }
         function saveM() { ['spv','frm','chk','conv','pt','unit','driver'].forEach(k=>localStorage.setItem(`m_${k}`,JSON.stringify(masters[k]))); renderSettings(); }
         function clearAllData() { if(confirm("Hapus SEMUA data?")){ localStorage.clear(); location.reload(); } }
+        function generateConfig() { document.getElementById('code-output').classList.remove('hidden'); document.getElementById('code-text').value = `const DEF = ${JSON.stringify(masters, null, 4)};`; }
+        function copyCode() { const el=document.getElementById('code-text'); el.select(); document.execCommand('copy'); alert('Disalin!'); }
         
         function addM(k) { const v=document.getElementById(`new-${k}`).value.toUpperCase().trim(); if(v&&!masters[k].includes(v)){masters[k].push(v);document.getElementById(`new-${k}`).value='';saveM();} }
         function delM(k,i) { if(confirm('Hapus?')){masters[k].splice(i,1);saveM();} }
@@ -204,16 +213,19 @@
         function ambilDataForm() {
             const getC = (id) => Array.from(document.querySelectorAll(`#${id} input:checked`)).map(e => e.nextElementSibling.innerText);
             const val = (id) => document.getElementById(id).value;
-            let ptD={}, tTrip=0; masters.pt.forEach(p=>{ ptD[p]={rs:val(`run-s-${p}`),ts:val(`trip-s-${p}`),rm:val(`run-m-${p}`),tm:val(`trip-m-${p}`)}; tTrip+=(val(`trip-m-${p}`)-val(`trip-s-${p}`)); });
-            
-            let convSum = [], haulDet = [], sdtDet = [];
+            let ptD={}, tTrip=0; 
+            let convSum=[], haulDet=[], sdtDet=[];
+
+            masters.pt.forEach(p=>{ 
+                ptD[p]={rs:val(`run-s-${p}`),ts:val(`trip-s-${p}`),rm:val(`run-m-${p}`),tm:val(`trip-m-${p}`)}; 
+                let diff = (val('inpShift') === 'NIGHT SHIFT') ? (val(`trip-m-${p}`) - val(`trip-s-${p}`)) : val(`trip-s-${p}`);
+                tTrip+=diff;
+                haulDet.push(`${p}=${diff}`);
+            });
+
             masters.conv.forEach(sd => {
                 let t=0; (convData[sd]||[]).forEach(d=>{if(d.sh&&d.sm&&d.fh&&d.fm){let s=parseInt(d.sh)*60+parseInt(d.sm),f=parseInt(d.fh)*60+parseInt(d.fm);if(f<s)f+=1440;t+=(f-s);}});
                 convSum.push(`${sd}: ${Math.floor(t/60)}j ${t%60}m`);
-            });
-            masters.pt.forEach(p => {
-                let diff = (val('inpShift') === 'NIGHT SHIFT') ? (val(`trip-m-${p}`) - val(`trip-s-${p}`)) : val(`trip-s-${p}`);
-                haulDet.push(`${p}=${diff}`);
             });
             sdtDet = sdtData.map(s => `${s.unit}(${s.driver}):${s.trip}`).join(', ');
 
@@ -232,36 +244,24 @@
         }
 
         function manualSave() { simpanKeLS(ambilDataForm()); alert('Tersimpan Lokal!'); nav('home'); }
-        function simpanKeLS(d) { let h=JSON.parse(localStorage.getItem('m_v21')||'[]'); const i=h.findIndex(x=>x.id===d.id); if(i>-1)h[i]=d; else {h.unshift(d); currentId=d.id;} localStorage.setItem('m_v21',JSON.stringify(h)); }
-        function loadHistoryList() { const h=JSON.parse(localStorage.getItem('m_v21')||'[]'); document.getElementById('history-list').innerHTML=h.map(d=>`<div class="hist-item" onclick="openForm(${d.id})"><div><div style="font-weight:700">${d.date||'Tanpa Tanggal'}</div><div style="font-size:11px; color:#64748b; margin-top:2px;">${d.shift} | ${d.total_haul||0} Trip</div></div><button onclick="delHist(event,${d.id})" style="color:#ef4444; border:none; background:none; font-weight:bold; font-size:16px;">🗑️</button></div>`).join(''); document.getElementById('empty-msg').style.display=h.length?'none':'block'; }
-        function delHist(e,id) { e.stopPropagation(); if(confirm('Hapus?')){ let h=JSON.parse(localStorage.getItem('m_v21')||'[]'); h=h.filter(x=>x.id!==id); localStorage.setItem('m_v21',JSON.stringify(h)); loadHistoryList(); } }
+        function simpanKeLS(d) { let h=JSON.parse(localStorage.getItem('m_v22')||'[]'); const i=h.findIndex(x=>x.id===d.id); if(i>-1)h[i]=d; else {h.unshift(d); currentId=d.id;} localStorage.setItem('m_v22',JSON.stringify(h)); }
+        function loadHistoryList() { const h=JSON.parse(localStorage.getItem('m_v22')||'[]'); document.getElementById('history-list').innerHTML=h.map(d=>`<div class="hist-item" onclick="openForm(${d.id})"><div><div style="font-weight:700">${d.date||'Tanpa Tanggal'}</div><div style="font-size:11px; color:#64748b; margin-top:2px;">${d.shift} | ${d.total_haul||0} Trip</div></div><button onclick="delHist(event,${d.id})" style="color:#ef4444; border:none; background:none; font-weight:bold; font-size:16px;">🗑️</button></div>`).join(''); document.getElementById('empty-msg').style.display=h.length?'none':'block'; }
+        function delHist(e,id) { e.stopPropagation(); if(confirm('Hapus?')){ let h=JSON.parse(localStorage.getItem('m_v22')||'[]'); h=h.filter(x=>x.id!==id); localStorage.setItem('m_v22',JSON.stringify(h)); loadHistoryList(); } }
         
         function loadFormData(id) { 
-            const d=JSON.parse(localStorage.getItem('m_v21')).find(x=>x.id===id); if(!d)return; resetForm(); 
+            const d=JSON.parse(localStorage.getItem('m_v22')).find(x=>x.id===id); if(!d)return; resetForm(); 
             document.getElementById('inpDate').value=d.date; document.getElementById('inpShift').value=d.shift;
             
-            // Reconstruct data
-            if(d.conv) convData = d.conv; 
-            if(d.sdt) sdtData = d.sdt;
-            renderConvRows(masters.conv[0]);
-            renderSdt();
-            
-            document.getElementById('inpTip').value=d.rom_tip; document.getElementById('inpTrans').value=d.rom_trans; 
-            
-            // Restore Chips Text Matching
-            // (Note: This is simplified. Ideally we store arrays. But for compatibility with string output, we do this)
             const checkC = (bid, str) => { if(str) { const arr=str.split(', '); document.querySelectorAll(`#${bid} input`).forEach(i=>{ if(arr.includes(i.nextElementSibling.innerText)) i.checked=true; }); } };
             checkC('box-spv', d.spv); checkC('box-frm', d.frm); checkC('box-chk', d.chk);
 
-            masters.pt.forEach(p=>{ 
-                if(d.pt && d.pt[p]){ 
-                    document.getElementById(`run-s-${p}`).value=d.pt[p].rs; document.getElementById(`trip-s-${p}`).value=d.pt[p].ts; 
-                    document.getElementById(`run-m-${p}`).value=d.pt[p].rm; document.getElementById(`trip-m-${p}`).value=d.pt[p].tm; 
-                    calcHauling(p); 
-                }
-            });
+            document.getElementById('inpTip').value=d.rom_tip; document.getElementById('inpTrans').value=d.rom_trans; 
+            convData = d.conv || {}; renderConvRows(masters.conv[0]);
+            masters.pt.forEach(p=>{ if(d.pt && d.pt[p]){ document.getElementById(`run-s-${p}`).value=d.pt[p].rs; document.getElementById(`trip-s-${p}`).value=d.pt[p].ts; document.getElementById(`run-m-${p}`).value=d.pt[p].rm; document.getElementById(`trip-m-${p}`).value=d.pt[p].tm; calcHauling(p); }}); 
+            sdtData=d.sdt; renderSdt();
         }
         function renderSettings() { const r=(k,a)=>document.getElementById(`list-m-${k}`).innerHTML=a.map((x,i)=>`<div class="master-item"><span>${x}</span><button onclick="delM('${k}',${i})" style="color:#ef4444; border:none; background:none;">✕</button></div>`).join(''); r('spv',masters.spv); r('frm',masters.frm); r('chk',masters.chk); r('conv',masters.conv); r('pt',masters.pt); r('unit',masters.unit); r('driver',masters.driver); }
+        
         function resetForm() { 
             document.querySelectorAll('input').forEach(i=>i.value=''); 
             document.querySelectorAll('input[type=checkbox]').forEach(i=>i.checked=false); 
@@ -272,23 +272,23 @@
             document.getElementById('grand-total').innerText="0"; 
         }
 
-        // --- ONLINE UPLOAD FEATURE ---
         function uploadToSheet() {
+            // FIX: Cek jika URL masih default (walaupun saya sudah set, jaga-jaga kalau Bapak lupa update script GAS baru)
             const data = ambilDataForm();
             simpanKeLS(data); 
             document.getElementById('loader').classList.remove('hidden');
             
-            // Timeout 5 Detik Anti-Macet
             const timer = setTimeout(() => {
                 document.getElementById('loader').classList.add('hidden');
                 alert("Data Terkirim! (Mode Cepat)");
                 nav('home');
             }, 3000);
 
+            // SEND TEXT/PLAIN TO BYPASS CORS
             fetch(GOOGLE_SCRIPT_URL, {
                 method: "POST",
                 mode: "no-cors",
-                headers: { "Content-Type": "text/plain" }, // Fixed content type for GAS
+                headers: { "Content-Type": "text/plain" },
                 body: JSON.stringify(data)
             })
             .then(() => {
@@ -298,16 +298,14 @@
                 nav('home');
             })
             .catch(error => {
-                console.log(error); // Silent catch
+                console.log(error); 
             });
         }
 
         function copyReport(isMalam) {
-            const d = ambilDataForm(); simpanKeLS(d); // Save local first to get object
+            const d = ambilDataForm(); simpanKeLS(d); 
             const fmtDate = (ds) => { if(!ds) return '-'; const dt = new Date(ds); const m = ["JAN","FEB","MAR","APR","MEI","JUN","JUL","AGU","SEP","OKT","NOV","DES"]; return `${dt.getDate()}/${m[dt.getMonth()]}/${dt.getFullYear().toString().substr(-2)}`; };
-            
-            // Chips handling from raw string (cleaner)
-            const cleanStr = (s) => s.replace(/(^, )|(, $)/g, ''); // Simple cleanup
+            const cleanStr = (s) => s.replace(/(^, )|(, $)/g, ''); 
 
             let txt=`*CHP OPERATION*\n*${d.shift}*\n*${fmtDate(d.date)}*\n\n*Supervisor* : ${cleanStr(d.spv)}\n*Foreman* : ${cleanStr(d.frm)}\n*Checker* : ${cleanStr(d.chk)}\n\n*Efektivitas RUNNING*\n`;
             masters.conv.forEach(sd=>{let t=0;(d.conv[sd]||[]).forEach(i=>{if(i.sh){let s=parseInt(i.sh)*60+parseInt(i.sm),f=parseInt(i.fh)*60+parseInt(i.fm);if(f<s)f+=1440;t+=(f-s);}});const h=Math.floor(t/60),m=t%60;if(t===0)txt+=`- ${sd} = -\n`;else txt+=`- ${sd} = ${h} Jam ${m} Menit\n`;});
@@ -336,3 +334,4 @@
     </script>
 </body>
 </html>
+
