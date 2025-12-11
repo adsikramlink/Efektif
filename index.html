@@ -1,285 +1,752 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Efektivitas Running — Input & History</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <style>
-    body{font-family:'Inter',sans-serif;background:#f1f5f9;color:#0f1724}
-    .card{background:white;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.06);padding:18px}
-    .fab{position:fixed;right:18px;bottom:18px;width:56px;height:56px;border-radius:999px;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 30px rgba(2,6,23,0.12)}
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Efektivitas Running - Firestore</title>
+    <style>
+        /* CSS RESET & MODERN UI (ambil dari file awalmu) */
+        :root { --p: #1e40af; --bg: #f1f5f9; --txt: #0f172a; --bor: #cbd5e1; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--txt); margin: 0; padding-bottom: 100px; }
+        .page { padding: 15px; max-width: 900px; margin: 0 auto; display: none; }
+        .page.active { display: block; }
+        .navbar { background: #0f1724; color: white; padding: 12px 16px; position: sticky; top: 0; z-index: 50; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .card { background: white; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 15px; overflow: hidden; }
+        .card-head { background: #f8fafc; padding: 10px 15px; font-weight: 700; font-size: 12px; color: #64748b; border-bottom: 1px solid var(--bor); text-transform: uppercase; }
+        .card-body { padding: 15px; }
+        .row { display: flex; gap: 10px; margin-bottom: 10px; } .col { flex: 1; }
+        label { display: block; font-size: 10px; font-weight: 700; color: #64748b; margin-bottom: 4px; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid var(--bor); border-radius: 6px; font-size: 14px; font-weight: 600; }
+        input:focus, select:focus { border-color: var(--p); outline: none; box-shadow: 0 0 0 2px rgba(37,99,235,0.08); }
+        .inp-line { border: none; border-bottom: 2px solid var(--bor); border-radius: 0; padding: 5px 0; background: transparent; }
+        .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+        .chip-lbl input { display: none; }
+        .chip-box { padding: 8px 12px; border-radius: 50px; border: 1px solid var(--bor); background: white; font-size: 12px; font-weight: 700; color: #475569; transition: 0.15s; cursor: pointer; }
+        .chip-lbl input:checked + .chip-box { background: var(--p); color: white; border-color: var(--p); }
+        .grid-t { display: grid; grid-template-columns: 20px 1fr 1fr 25px; gap: 6px; align-items: center; margin-bottom: 8px; }
+        .t-box { display: flex; border: 1px solid var(--bor); border-radius: 6px; overflow: hidden; background: white; }
+        .t-inp { width: 50%; border: none; text-align: center; font-weight: 700; padding: 8px 0; }
+        .sdt-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; border: 1px solid var(--bor); padding: 8px; border-radius: 6px; background: white; }
+        .fab { position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; background: var(--p); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border: none; z-index: 120; cursor: pointer; }
+        .btn { width: 100%; padding: 12px; background: var(--p); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 13px; margin-top: 8px; cursor: pointer; }
+        .btn-sec { background: white; color: var(--p); border: 1px solid var(--p); cursor: pointer; }
+        .hidden { display: none !important; }
+        #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; font-weight: bold; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 12px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .hist-item { background: white; padding: 12px; border-radius: 8px; border: 1px solid var(--bor); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .top-right-admin { background: #0b1020; color: white; padding:8px 10px; border-radius:8px; font-weight:700; cursor:pointer; }
+        .small-muted { font-size:12px;color:#64748b }
+    </style>
 </head>
-<body class="min-h-screen">
+<body>
 
-  <!-- HEADER -->
-  <header class="bg-slate-900 text-white py-4 px-6 sticky top-0 z-40">
-    <div class="max-w-4xl mx-auto flex items-center justify-between">
-      <div>
-        <h1 class="text-lg font-bold">Efektivitas Running</h1>
-        <div class="text-slate-400 text-xs">Dashboard v3.0 Final</div>
-      </div>
-      <div class="flex items-center gap-3">
-        <a id="btnAddData" href="admin.html" class="bg-indigo-600 hover:bg-indigo-700 px-3 py-2 rounded text-sm font-bold">+ Tambah Data</a>
-      </div>
+    <div id="loader" class="hidden"><div class="spinner"></div><div id="load-text">Memproses...</div></div>
+
+    <!-- HOME PAGE -->
+    <div id="p-home" class="page active">
+        <div class="navbar">
+            <div>
+                <div style="font-weight:800">Efektivitas Running</div>
+                <div style="font-size:12px; color:#94a3b8">Dashboard v3.0</div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center">
+                <div id="adminBtn" class="top-right-admin">Admin</div>
+                <div id="btnAddData" class="top-right-admin" title="Tambah Data">+ Tambah Data</div>
+            </div>
+        </div>
+
+        <div style="padding:16px; max-width:900px; margin:0 auto;">
+            <div id="hist-list"></div>
+            <div id="empty-msg" style="text-align:center; margin-top:60px; color:#94a3b8;">
+                <div style="font-size:40px; margin-bottom:10px">📂</div>Belum ada riwayat
+            </div>
+        </div>
+
+        <button onclick="openForm()" class="fab" title="Isi Form">+</button>
     </div>
-  </header>
 
-  <main class="max-w-4xl mx-auto p-4 space-y-6">
-
-    <!-- SUMMARY / PREVIEW (opsional) -->
-    <section class="card">
-      <div class="flex items-center justify-between">
-        <div>
-          <h2 class="font-bold text-lg">Ringkasan</h2>
-          <p class="text-sm text-slate-500">Preview status terakhir dan history pembuatan form.</p>
-        </div>
-        <div class="text-sm text-slate-500"> <span id="lastUpdated">—</span> </div>
-      </div>
-      <div class="mt-4 grid grid-cols-3 gap-3">
-        <div class="p-3 bg-slate-50 rounded">
-          <div class="text-xs text-slate-400">Total SDT</div>
-          <div id="stat-sdt" class="font-black text-indigo-700 text-xl">0</div>
-        </div>
-        <div class="p-3 bg-slate-50 rounded">
-          <div class="text-xs text-slate-400">Total Units</div>
-          <div id="stat-units" class="font-black text-indigo-700 text-xl">0</div>
-        </div>
-        <div class="p-3 bg-slate-50 rounded">
-          <div class="text-xs text-slate-400">History</div>
-          <div id="stat-history" class="font-black text-indigo-700 text-xl">0</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- HISTORY -->
-    <section class="card">
-      <div class="flex items-center justify-between">
-        <h3 class="font-bold">History Pembuatan Form</h3>
-        <button onclick="clearHistoryView()" class="text-sm text-slate-500">Refresh</button>
-      </div>
-      <div id="historyList" class="mt-3 space-y-2 text-sm text-slate-700">
-        <!-- history items akan render di sini -->
-        <div class="text-slate-400 italic">Memuat history...</div>
-      </div>
-    </section>
-
-    <!-- UNIT BUTTONS (dari settings.lists) -->
-    <section class="card">
-      <h3 class="font-bold mb-2">Unit (klik untuk langsung input SDT)</h3>
-      <div id="unitButtons" class="flex flex-wrap gap-2"></div>
-    </section>
-
-    <!-- FORM SECTION -->
-    <section id="formSection" class="card">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="font-bold">Isi Form SDT (Publik)</h3>
-        <div class="text-xs text-slate-400">Siapa saja bisa mengisi</div>
-      </div>
-
-      <form id="sdtForm" class="space-y-3" onsubmit="event.preventDefault(); submitForm();">
-        <div class="grid grid-cols-12 gap-2">
-          <div class="col-span-4">
-            <label class="text-xs text-slate-500">Unit</label>
-            <select id="formUnit" class="w-full p-2 border rounded bg-white"></select>
-          </div>
-          <div class="col-span-4">
-            <label class="text-xs text-slate-500">Driver</label>
-            <select id="formDriver" class="w-full p-2 border rounded bg-white"></select>
-          </div>
-          <div class="col-span-2">
-            <label class="text-xs text-slate-500">Trip</label>
-            <input id="formTrip" type="number" min="0" class="w-full p-2 border rounded bg-white" value="0">
-          </div>
-          <div class="col-span-2">
-            <label class="text-xs text-slate-500">SD</label>
-            <select id="formSd" class="w-full p-2 border rounded bg-white">
-              <option>SD1</option><option>SD2</option><option>SD3</option>
-            </select>
-          </div>
+    <!-- FORM PAGE -->
+    <div id="p-form" class="page">
+        <div class="navbar">
+            <div style="cursor:pointer" onclick="nav('home')">← Batal</div>
+            <div style="font-weight:800">Input Data</div>
+            <div id="sendBtn" style="color:#4ade80; font-weight:bold; cursor:pointer">KIRIM</div>
         </div>
 
-        <div>
-          <label class="text-xs text-slate-500">Keterangan (opsional)</label>
-          <input id="formKet" class="w-full p-2 border rounded bg-white" placeholder="Contoh: Breakdown / Extra Trip">
+        <div style="padding:16px; max-width:900px; margin:0 auto;">
+            <!-- 0. Operasional -->
+            <div class="card"><div class="card-head">0. Data Operasional</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col"><label>Shift</label><select id="i-shift"><option>NIGHT SHIFT</option><option>DAY SHIFT</option></select></div>
+                        <div class="col"><label>Tanggal</label><input type="date" id="i-date"></div>
+                    </div>
+
+                    <label>Supervisor</label><div id="c-spv" class="chips"></div><input id="m-spv" class="inp-line" placeholder="+ Manual">
+                    <label style="margin-top:8px">Foreman</label><div id="c-frm" class="chips"></div><input id="m-frm" class="inp-line" placeholder="+ Manual">
+                    <label style="margin-top:8px">Checker</label><div id="c-chk" class="chips"></div><input id="m-chk" class="inp-line" placeholder="+ Manual">
+
+                    <div class="row" style="margin-top:12px">
+                        <div class="col"><label style="color:blue">TIPPING ROM</label><input type="number" id="i-tip" value="0" style="border-color:blue"></div>
+                        <div class="col"><label style="color:green">TRANSFER ROM</label><input type="number" id="i-trans" value="0" style="border-color:green"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 1. Durasi Conveyor -->
+            <div class="card"><div class="card-head">1. Durasi Conveyor</div>
+                <div class="card-body">
+                    <div id="conv-tabs" class="row" style="overflow-x:auto; padding-bottom:5px"></div>
+                    <div id="conv-wrap"></div>
+                    <button id="btnAddConv" class="btn btn-sec" style="border-style:dashed">+ Tambah Jam</button>
+                    <div class="row" style="margin-top:12px; text-align:center; font-weight:bold; font-size:12px">
+                        <div class="col">TOTAL: <span id="t-jam">-</span></div>
+                        <div class="col">EFF: <span id="t-eff">-</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Hauling -->
+            <div class="card"><div class="card-head">2. Hauling (Unit & Trip)</div>
+                <div class="card-body">
+                    <div id="haul-list"></div>
+                    <div style="background:#f1f5f9; padding:10px; text-align:center; font-weight:bold; border-radius:8px; margin-top:10px; color:var(--p)">
+                        TOTAL HAULING: <span id="t-haul">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. SDT Running -->
+            <div class="card"><div class="card-head">3. SDT Running</div>
+                <div class="card-body">
+                    <label>Pilih Unit:</label><div id="unit-chips" class="chips"></div>
+                    <div id="sdt-wrap" style="margin-top:10px"></div>
+                </div>
+            </div>
+
+            <div style="height:40px"></div>
+        </div>
+    </div>
+
+    <!-- ADMIN PANEL (modal-like page) -->
+    <div id="p-admin" class="page">
+        <div class="navbar">
+            <div style="cursor:pointer" onclick="nav('home')">← Kembali</div>
+            <div style="font-weight:800">Admin Panel</div>
+            <div style="color:#60a5fa; font-weight:bold">—</div>
         </div>
 
-        <div class="flex gap-2">
-          <button type="submit" class="bg-emerald-600 text-white px-4 py-2 rounded font-bold">Kirim</button>
-          <button type="button" onclick="resetForm()" class="bg-slate-100 px-4 py-2 rounded">Reset</button>
+        <div style="padding:16px; max-width:900px; margin:0 auto;">
+            <div id="loginBox" class="card">
+                <div class="card-head">Login Admin</div>
+                <div class="card-body">
+                    <label>Username</label><input id="adm-user" placeholder="admin">
+                    <label style="margin-top:8px">Password</label><input id="adm-pass" type="password" placeholder="mpadmin">
+                    <div style="margin-top:10px; display:flex; gap:8px">
+                        <button class="btn" onclick="adminLogin()">Login</button>
+                        <button class="btn btn-sec" onclick="logoutAdmin()">Logout</button>
+                    </div>
+                    <div id="adm-msg" class="small-muted" style="margin-top:8px"></div>
+                </div>
+            </div>
+
+            <div id="adminArea" class="hidden">
+                <div class="card"><div class="card-head">Master Lists</div>
+                    <div class="card-body">
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+                            <div>
+                                <label>Supervisor</label>
+                                <div id="adm-spv" class="chips"></div>
+                                <input id="inp-spv" class="inp-line" placeholder="Tambah Supervisor">
+                                <button class="btn" onclick="addMaster('supervisors')">Tambah Supervisor</button>
+                            </div>
+                            <div>
+                                <label>Foreman</label>
+                                <div id="adm-frm" class="chips"></div>
+                                <input id="inp-frm" class="inp-line" placeholder="Tambah Foreman">
+                                <button class="btn" onclick="addMaster('foremen')">Tambah Foreman</button>
+                            </div>
+                            <div>
+                                <label>Checker</label>
+                                <div id="adm-chk" class="chips"></div>
+                                <input id="inp-chk" class="inp-line" placeholder="Tambah Checker">
+                                <button class="btn" onclick="addMaster('checkers')">Tambah Checker</button>
+                            </div>
+                            <div>
+                                <label>Drivers</label>
+                                <div id="adm-drv" class="chips"></div>
+                                <input id="inp-drv" class="inp-line" placeholder="Tambah Driver">
+                                <button class="btn" onclick="addMaster('masterDrivers')">Tambah Driver</button>
+                            </div>
+                            <div style="grid-column:1/3">
+                                <label>Units</label>
+                                <div id="adm-units" class="chips"></div>
+                                <input id="inp-unit" class="inp-line" placeholder="Tambah Unit">
+                                <button class="btn" onclick="addMaster('masterUnits')">Tambah Unit</button>
+                            </div>
+                        </div>
+                        <div style="margin-top:12px" class="small-muted">Simpan perubahan master akan menulis ke Firestore (butuh login admin).</div>
+                        <div style="margin-top:12px; display:flex; gap:8px">
+                            <button class="btn" onclick="saveAllMasters()">Simpan Semua ke Firestore</button>
+                            <button class="btn btn-sec" onclick="resetLocalMaster()">Reset Local</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card"><div class="card-head">History Preview</div><div class="card-body">
+                    <div id="adminHistory"></div>
+                </div></div>
+            </div>
         </div>
+    </div>
 
-        <div id="formMsg" class="text-sm text-slate-500"></div>
-      </form>
-    </section>
+    <!-- Firebase compat SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-firestore-compat.js"></script>
 
-  </main>
+    <script>
+    /****************************************************************
+     * FIRESTORE IMPLEMENTATION FOR YOUR ORIGINAL UI
+     *
+     * - Public can write `sdt` and `history`.
+     * - Admin (client login) writes `settings/lists` with _adminKey.
+     * - Firestore Rules (paste in Console) should require _adminKey:
+     *
+     * rules_version = '2';
+     * service cloud.firestore {
+     *   match /databases/{database}/documents {
+     *     match /{document=**} { allow read: if true; }
+     *     match /sdt/{docId} { allow create, update, delete: if true; }
+     *     match /history/{docId} { allow create, read: if true; }
+     *     match /settings/lists {
+     *       allow read: if true;
+     *       allow write: if request.resource.data._adminKey == "A9X2-FF39-MPA-2024-SECURE";
+     *     }
+     *   }
+     * }
+     *
+     ****************************************************************/
 
-  <!-- Floating button (isi form cepat) -->
-  <button class="fab bg-indigo-600 text-white" title="Isi Form" onclick="scrollToForm()">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-  </button>
+    // ---------- FIREBASE CONFIG ----------
+    const firebaseConfig = {
+      apiKey: "AIzaSyDGPkoewPcjffZ8ORwB3rrVAKiYtRYzuEk",
+      authDomain: "retase-20ec2.firebaseapp.com",
+      projectId: "retase-20ec2",
+      storageBucket: "retase-20ec2.firebasestorage.app",
+      messagingSenderId: "414104675676",
+      appId: "1:414104675676:web:95f0012dadfb1743ff8d99"
+    };
 
-  <!-- Firebase compat SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-firestore-compat.js"></script>
+    // admin client-side credential (simple)
+    const ADMIN_USER = "admin";
+    const ADMIN_PASS = "mpadmin";
+    const ADMIN_TOKEN = "A9X2-FF39-MPA-2024-SECURE"; // must match Firestore Rules
 
-<script>
-  // --------- Firebase config (pakai milikmu) ----------
-  const firebaseConfig = {
-    apiKey: "AIzaSyDGPkoewPcjffZ8ORwB3rrVAKiYtRYzuEk",
-    authDomain: "retase-20ec2.firebaseapp.com",
-    projectId: "retase-20ec2",
-    storageBucket: "retase-20ec2.firebasestorage.app",
-    messagingSenderId: "414104675676",
-    appId: "1:414104675676:web:95f0012dadfb1743ff8d99"
-  };
+    // ---------- STATE ----------
+    let db;
+    const DEFAULTS = {
+        spv: ['Ihsan R','Dicky F','Sopian'],
+        frm: ['Gunawan TC','Hardiansyah','Lewi S','Elimelek J'],
+        chk: ['Indra R','Jemmie P','Ikram','Fahri T'],
+        conv: ['SD1','SD2','SD3'],
+        pt: ['MHA','KARUNIA','BUMA'],
+        unit: ["01-F","02-F","03-F","3A-F","05-F","08-P","09-P","10-P","25-P"],
+        driver: ["Jeksen","Saipul","Julio","Ardianur","Suryadi"]
+    };
+    let M = {}; // master lists from firestore (or default)
+    let C = {}; // conveyor rows
+    let S = []; // sdt rows
+    let activeC = '';
 
-  // state
-  let db, masterUnits = [], masterDrivers = [], historyData = [], sdtCount = 0;
-
-  // Safe init: tunggu SDK ter-load
-  (function waitForFirebase(){
-    let tries=0;
-    const id=setInterval(()=>{
-      tries++;
-      if(window.firebase && firebase.firestore){
-        clearInterval(id);
-        try {
-          if(!firebase.apps || firebase.apps.length===0) firebase.initializeApp(firebaseConfig);
-          db = firebase.firestore();
-          startApp();
-        } catch(e){
-          console.error(e); alert('Gagal inisialisasi Firebase: '+e.message);
+    // ---------- SAFE INIT ----------
+    function waitForFirebase() {
+      let tries=0;
+      const t = setInterval(()=>{
+        tries++;
+        if(window.firebase && firebase.firestore) {
+          clearInterval(t);
+          try {
+            if(!firebase.apps || firebase.apps.length===0) firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            initApp();
+          } catch(e) {
+            clearInterval(t);
+            alert("Gagal inisialisasi Firebase: "+e.message);
+          }
+        } else if(tries>60) {
+          clearInterval(t);
+          alert("Firebase SDK gagal dimuat. Buka di Chrome atau periksa koneksi.");
         }
-      } else if(tries>60){
-        clearInterval(id);
-        alert('Firebase SDK gagal dimuat. Buka di Chrome / periksa koneksi.');
-      }
-    },200);
-  })();
-
-  function startApp(){
-    subscribeLists();
-    subscribeSdt();
-    subscribeHistory();
-  }
-
-  // subscribe settings/lists
-  function subscribeLists(){
-    db.doc('settings/lists').onSnapshot(doc=>{
-      if(!doc.exists){ renderUnits([],[]); return; }
-      const d = doc.data()||{};
-      masterUnits = d.masterUnits || [];
-      masterDrivers = d.masterDrivers || [];
-      renderUnits(masterUnits, masterDrivers);
-    }, err => { console.error('lists listen', err); renderUnits([],[]); });
-  }
-
-  function renderUnits(units, drivers){
-    const uEl = document.getElementById('unitButtons'), selUnit=document.getElementById('formUnit'), selDriver=document.getElementById('formDriver');
-    uEl.innerHTML = units.map(u=>`<button class="px-3 py-1 bg-slate-100 rounded text-sm" onclick="quickAdd('${escapeHtml(u)}')">${u}</button>`).join(' ');
-    selUnit.innerHTML = units.map(u=>`<option value="${escapeHtml(u)}">${u}</option>`).join('') || '<option value="">-</option>';
-    selDriver.innerHTML = `<option value="">Driver...</option>` + drivers.map(d=>`<option value="${escapeHtml(d)}">${d}</option>`).join('');
-    document.getElementById('stat-units').innerText = (units||[]).length;
-  }
-
-  // subscribe sdt collection
-  function subscribeSdt(){
-    db.collection('sdt').onSnapshot(snap=>{
-      sdtCount = snap.size;
-      document.getElementById('stat-sdt').innerText = sdtCount;
-    }, err => console.error('sdt listen', err));
-  }
-
-  // subscribe history (latest 50)
-  function subscribeHistory(){
-    db.collection('history').orderBy('ts','desc').limit(50).onSnapshot(snap=>{
-      historyData = [];
-      snap.forEach(d => historyData.push({ id:d.id, ...d.data() }));
-      renderHistory();
-      document.getElementById('stat-history').innerText = historyData.length;
-      if(historyData.length>0){
-        const t = historyData[0].ts && historyData[0].ts.toDate ? historyData[0].ts.toDate() : new Date();
-        document.getElementById('lastUpdated').innerText = t.toLocaleString();
-      }
-    }, err => {
-      console.error('history listen', err);
-      document.getElementById('historyList').innerHTML = '<div class="text-red-500">Gagal memuat history.</div>';
-    });
-  }
-
-  function renderHistory(){
-    const el = document.getElementById('historyList');
-    if(!historyData || historyData.length===0){
-      el.innerHTML = '<div class="text-slate-400 italic">Belum ada history.</div>';
-      return;
+      },200);
     }
-    el.innerHTML = historyData.map(h => {
-      const t = h.ts && h.ts.toDate ? h.ts.toDate().toLocaleString() : '';
-      const by = h.by || 'public';
-      const action = h.action || JSON.stringify(h).slice(0,80);
-      return `<div class="border-b pb-2 pt-2">
-        <div class="text-xs text-slate-400">${t} — <strong>${escapeHtml(by)}</strong></div>
-        <div class="text-sm">${escapeHtml(action)}</div>
-      </div>`;
-    }).join('');
-  }
+    waitForFirebase();
 
-  // QUick add from unit button: open form prefilled & scroll
-  function quickAdd(unit){
-    document.getElementById('formUnit').value = unit;
-    scrollToForm();
-  }
+    // ---------- APP START ----------
+    function initApp() {
+      document.getElementById('i-date').valueAsDate = new Date();
+      // attach events
+      document.getElementById('btnAddConv').onclick = addTime;
+      document.getElementById('sendBtn').onclick = sendData;
+      document.getElementById('adminBtn').onclick = ()=>nav('admin');
+      document.getElementById('btnAddData').onclick = ()=>nav('admin');
 
-  // form submit: create sdt doc & history
-  function submitForm(){
-    const unit = document.getElementById('formUnit').value || '';
-    const driver = document.getElementById('formDriver').value || '';
-    const trip = parseInt(document.getElementById('formTrip').value) || 0;
-    const sd = document.getElementById('formSd').value || '';
-    const ket = document.getElementById('formKet').value || '';
+      // admin login controls
+      document.getElementById('adm-user').value = 'admin';
 
-    if(!unit){ showFormMsg('Pilih unit terlebih dahulu','red'); return; }
+      // subscribe master lists
+      subscribeMasterLists();
+      // subscribe history from firestore
+      subscribeHistory();
+      // subscribe sdt (for stat or listing)
+      subscribeSdtCount();
+      // init UI default
+      if(!activeC && DEFAULTS.conv.length) activeC = DEFAULTS.conv[0];
+    }
 
-    const doc = { unit, driver, trip, sd, ket, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+    // ---------- SUBSCRIBE MASTER LISTS ----------
+    function subscribeMasterLists() {
+      try {
+        db.doc('settings/lists').onSnapshot(doc=>{
+          if(!doc.exists) {
+            M = {...DEFAULTS};
+            renderAllFromMaster();
+            return;
+          }
+          const data = doc.data() || {};
+          // Merge with defaults to avoid missing keys
+          M = {
+            spv: data.supervisors || DEFAULTS.spv,
+            frm: data.foremen || DEFAULTS.frm,
+            chk: data.checkers || DEFAULTS.chk,
+            conv: data.conv || DEFAULTS.conv,
+            pt: data.pt || DEFAULTS.pt,
+            unit: data.masterUnits || DEFAULTS.unit,
+            driver: data.masterDrivers || DEFAULTS.driver
+          };
+          // If conveyor keys not present, init
+          M.conv.forEach(c=>{ if(!C[c]) C[c]=[]; });
+          if(!activeC) activeC = M.conv[0] || DEFAULTS.conv[0];
+          renderAllFromMaster();
+        }, err => {
+          console.error('listen settings err', err);
+          M = {...DEFAULTS};
+          renderAllFromMaster();
+        });
+      } catch(e) {
+        console.error('subscribeMasterLists error', e);
+        M = {...DEFAULTS};
+        renderAllFromMaster();
+      }
+    }
 
-    db.collection('sdt').add(doc)
-      .then(ref => {
-        // history entry
-        db.collection('history').add({ action: `create SDT ${unit} ${trip} Trip`, by:'public', ts: firebase.firestore.FieldValue.serverTimestamp() }).catch(()=>{});
-        showFormMsg('Berhasil dikirim', 'green');
-        document.getElementById('sdtForm').reset();
-      })
-      .catch(err => {
-        console.error('submitForm', err);
-        showFormMsg('Gagal: ' + err.message, 'red');
+    // ---------- RENDER UI FROM MASTER ----------
+    function renderAllFromMaster() {
+      renderHomeHistory();
+      renderChips();
+      renderConvTabs();
+      renderHaul();
+      renderUnitChips();
+      renderSdt();
+    }
+
+    function renderChips() {
+      const rc = (id, arr) => {
+        const el = document.getElementById(id);
+        el.innerHTML = (arr||[]).map(x => `<label class="chip-lbl"><input type="checkbox" value="${escapeHtml(x)}"><div class="chip-box">${escapeHtml(x)}</div></label>`).join('');
+      };
+      rc('c-spv', M.spv);
+      rc('c-frm', M.frm);
+      rc('c-chk', M.chk);
+
+      // admin lists
+      document.getElementById('adm-spv').innerHTML = (M.spv||[]).map((v,i)=>`<div class="chip-box">${escapeHtml(v)} <button onclick="removeMaster('supervisors',${i})" style="margin-left:6px;color:red">×</button></div>`).join('');
+      document.getElementById('adm-frm').innerHTML = (M.frm||[]).map((v,i)=>`<div class="chip-box">${escapeHtml(v)} <button onclick="removeMaster('foremen',${i})" style="margin-left:6px;color:red">×</button></div>`).join('');
+      document.getElementById('adm-chk').innerHTML = (M.chk||[]).map((v,i)=>`<div class="chip-box">${escapeHtml(v)} <button onclick="removeMaster('checkers',${i})" style="margin-left:6px;color:red">×</button></div>`).join('');
+      document.getElementById('adm-drv').innerHTML = (M.driver||[]).map((v,i)=>`<div class="chip-box">${escapeHtml(v)} <button onclick="removeMaster('masterDrivers',${i})" style="margin-left:6px;color:red">×</button></div>`).join('');
+      document.getElementById('adm-units').innerHTML = (M.unit||[]).map((v,i)=>`<div class="chip-box">${escapeHtml(v)} <button onclick="removeMaster('masterUnits',${i})" style="margin-left:6px;color:red">×</button></div>`).join('');
+    }
+
+    // ---------- CONVEYOR UI ----------
+    function renderConvTabs() {
+      const wrap = document.getElementById('conv-tabs');
+      wrap.innerHTML = (M.conv||DEFAULTS.conv).map(c=>`<button class="btn btn-sec" style="flex:1; ${activeC==c?'background:#dbeafe;border-color:blue':''}" onclick="activeC='${c}'; renderConv();">${c}</button>`).join('');
+      // ensure C contains arrays
+      (M.conv||DEFAULTS.conv).forEach(c=>{ if(!C[c]) C[c]=[]; });
+      renderConv();
+    }
+
+    function renderConv() {
+      const cw = document.getElementById('conv-wrap');
+      cw.innerHTML = (C[activeC]||[]).map((x,i)=>`
+        <div class="grid-t">
+          <div style="color:#94a3b8;font-size:12px">${i+1}</div>
+          <div class="t-box"><input type="tel" value="${x.sh||''}" class="t-inp" oninput="C['${activeC}'][${i}].sh=this.value; calcConv()"/>:<input type="tel" value="${x.sm||''}" class="t-inp" oninput="C['${activeC}'][${i}].sm=this.value; calcConv()"/></div>
+          <div class="t-box"><input type="tel" value="${x.fh||''}" class="t-inp" oninput="C['${activeC}'][${i}].fh=this.value; calcConv()"/>:<input type="tel" value="${x.fm||''}" class="t-inp" oninput="C['${activeC}'][${i}].fm=this.value; calcConv()"/></div>
+          <div style="cursor:pointer;color:red;font-weight:bold" onclick="C['${activeC}'].splice(${i},1); renderConv()">×</div>
+        </div>`).join('');
+      calcConv();
+    }
+
+    function addTime() {
+      if(!C[activeC]) C[activeC]=[];
+      C[activeC].push({sh:'',sm:'',fh:'',fm:''});
+      renderConv();
+    }
+
+    function calcConv() {
+      let t = 0;
+      (C[activeC]||[]).forEach(x=>{
+        if(x.sh!==undefined && x.fh!==undefined && x.sh!=='' && x.fh!=='') {
+          let s = (parseInt(x.sh)||0)*60 + (parseInt(x.sm)||0);
+          let f = (parseInt(x.fh)||0)*60 + (parseInt(x.fm)||0);
+          if(f < s) f += 1440;
+          t += (f-s);
+        }
       });
-  }
+      document.getElementById('t-jam').innerText = `${Math.floor(t/60)}j ${t%60}m`;
+      let r = (12*60)-t;
+      document.getElementById('t-eff').innerText = r>=0 ? `${Math.floor(r/60)}j ${r%60}m` : 'Over';
+    }
 
-  function showFormMsg(txt, color='slate'){
-    const el = document.getElementById('formMsg');
-    el.innerText = txt;
-    el.style.color = (color==='green'?'#059669':(color==='red'?'#DC2626':'#64748b'));
-    setTimeout(()=>{ el.innerText=''; }, 4000);
-  }
+    // ---------- HAUL UI ----------
+    function renderHaul() {
+      const wrap = document.getElementById('haul-list');
+      wrap.innerHTML = (M.pt||DEFAULTS.pt).map(p => `
+        <div style="border:1px solid ${'#e6eef8'}; border-radius:8px; padding:8px; margin-bottom:8px;">
+          <div style="font-size:11px; font-weight:bold; color:#64748b; margin-bottom:6px">${p}</div>
+          <div style="display:grid; grid-template-columns: 20px 1fr 1fr 20px; gap:6px; align-items:center;">
+            <div style="font-size:12px">☀️</div>
+            <input type="number" id="rs-${p}" placeholder="Unit" oninput="calcTotal()">
+            <input type="number" id="ts-${p}" placeholder="Trip" oninput="calcTotal()">
+            <div style="font-size:12px">🌙</div>
+            <input type="number" id="rm-${p}" placeholder="Unit" oninput="calcTotal()">
+            <input type="number" id="tm-${p}" placeholder="Trip" oninput="calcTotal()">
+          </div>
+        </div>
+      `).join('');
+    }
 
-  function resetForm(){
-    document.getElementById('sdtForm').reset();
-  }
+    function calcTotal() {
+      let tot = 0;
+      (M.pt||DEFAULTS.pt).forEach(p=>{
+        let ts = Number((document.getElementById(`ts-${p}`)||{value:0}).value) || 0;
+        let rs = Number((document.getElementById(`rs-${p}`)||{value:0}).value) || 0;
+        let tm = Number((document.getElementById(`tm-${p}`)||{value:0}).value) || 0;
+        let rm = Number((document.getElementById(`rm-${p}`)||{value:0}).value) || 0;
+        // hasil shown in original was ts-rs and (tm-ts)-rm but we aggregate here:
+        const shift = document.getElementById('i-shift').value;
+        if(shift === 'NIGHT SHIFT') tot += (tm - ts);
+        else tot += ts;
+      });
+      document.getElementById('t-haul').innerText = tot;
+    }
 
-  function scrollToForm(){
-    document.getElementById('formSection').scrollIntoView({behavior:'smooth', block:'center'});
-  }
+    // ---------- SDT UI ----------
+    function renderUnitChips() {
+      const el = document.getElementById('unit-chips');
+      el.innerHTML = (M.unit||DEFAULTS.unit).map(u=>`<div class="chip-box" onclick="addSdt('${escapeHtml(u)}')" style="background:#eff6ff;color:#0b4fdf;border-color:#dbeafe">+ ${escapeHtml(u)}</div>`).join('');
+    }
 
-  function clearHistoryView(){ subscribeHistory(); }
+    function addSdt(u) {
+      S.push({u:u, d:'', t:0, k:''});
+      renderSdt();
+    }
 
-  // small helper to escape
-  function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function renderSdt() {
+      const wrap = document.getElementById('sdt-wrap');
+      const drvOpts = (M.driver||DEFAULTS.driver).map(d=>`<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+      wrap.innerHTML = S.map((x,i)=>`
+        <div class="sdt-row">
+          <div style="font-weight:700; width:80px">${escapeHtml(x.u)}</div>
+          <select onchange="S[${i}].d=this.value" style="flex:2; border:none; font-size:13px">${'<option value=\"\">Driver...</option>' + drvOpts}</select>
+          <input type="number" value="${x.t||0}" oninput="S[${i}].t=this.value" style="width:70px; text-align:center; border:none; background:#f1f5f9; border-radius:6px;">
+          <input placeholder="Ket..." value="${escapeHtml(x.k)}" oninput="S[${i}].k=this.value" style="flex:1; border:none; color:#ef4444; text-align:right; font-size:12px;">
+          <span style="cursor:pointer;color:#cbd5e1;padding-left:6px;font-weight:bold" onclick="S.splice(${i},1); renderSdt()">×</span>
+        </div>
+      `).join('');
+    }
 
-</script>
+    // ---------- GET PAYLOAD FROM FORM ----------
+    function getPayload() {
+      const getCheckedStr = (id, manualId) => {
+        const arr = Array.from(document.querySelectorAll(`#${id} input:checked`)).map(i=>i.nextElementSibling.innerText.trim());
+        const m = (document.getElementById(manualId)||{value:''}).value.trim();
+        if(m) arr.push(m);
+        return arr.join(', ');
+      };
+      const val = id => (document.getElementById(id)||{value:''}).value;
+      // conveyor summary
+      const convSum = (M.conv||DEFAULTS.conv).map(c=>{
+        let t=0; (C[c]||[]).forEach(x=>{ if(x.sh && x.fh){ let s=(parseInt(x.sh)||0)*60+(parseInt(x.sm)||0); let f=(parseInt(x.fh)||0)*60+(parseInt(x.fm)||0); if(f<s) f+=1440; t += (f-s); }});
+        return `${c}=${Math.floor(t/60)}:${t%60}`;
+      }).join(', ');
+      const haulDet = (M.pt||DEFAULTS.pt).map(p=>{
+        let ts = Number((document.getElementById(`ts-${p}`)||{value:0}).value)||0;
+        let tm = Number((document.getElementById(`tm-${p}`)||{value:0}).value)||0;
+        let diff = (val('i-shift') === 'NIGHT SHIFT') ? (tm - ts) : ts;
+        return `${p}=${diff}`;
+      }).join(', ');
+      const sdtSum = S.map(x=>`${x.u}(${x.d||'-'}):${x.t||0}`).join(', ');
+
+      return {
+        action: 'simpan_laporan',
+        date: val('i-date'), shift: val('i-shift'),
+        spv: getCheckedStr('c-spv','m-spv'),
+        frm: getCheckedStr('c-frm','m-frm'),
+        chk: getCheckedStr('c-chk','m-chk'),
+        rom_tip: Number(val('i-tip')) || 0,
+        rom_trans: Number(val('i-trans')) || 0,
+        total_haul: document.getElementById('t-haul').innerText || "0",
+        detail_conv: convSum,
+        detail_sdt: sdtSum,
+        detail_haul: haulDet,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+    }
+
+    // ---------- SEND DATA (PUBLIC) ----------
+    function sendData() {
+      const payload = getPayload();
+      if(!payload) return alert('Data kosong.');
+      showLoader('Mengirim laporan...');
+      // add to sdt collection as entry (for this example we add a summary doc to history and keep S as details)
+      db.collection('history').add({...payload, by:'public', ts: firebase.firestore.FieldValue.serverTimestamp()})
+        .then(()=> {
+          // also add each SDT row to 'sdt' collection
+          const batch = db.batch();
+          S.forEach(x => {
+            const ref = db.collection('sdt').doc();
+            batch.set(ref, { unit: x.u, driver: x.d||'', trip: Number(x.t)||0, ket: x.k||'', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+          });
+          return batch.commit();
+        })
+        .then(()=> {
+          hideLoader();
+          alert('Data berhasil dikirim.');
+          nav('home');
+          loadHistoryLocal();
+        })
+        .catch(err => {
+          hideLoader();
+          console.error('sendData err', err);
+          // fallback: save local
+          const hist = JSON.parse(localStorage.getItem('hist')||'[]');
+          const fallback = {...payload, id:Date.now()};
+          hist.unshift(fallback); localStorage.setItem('hist', JSON.stringify(hist));
+          alert('Gagal koneksi. Data disimpan di perangkat.');
+          nav('home'); loadHistoryLocal();
+        });
+    }
+
+    // ---------- HISTORY (subscribe firestore & fallback to local) ----------
+    let remoteHistory = [];
+    function subscribeHistory() {
+      try {
+        db.collection('history').orderBy('ts','desc').limit(50).onSnapshot(snap=>{
+          remoteHistory = [];
+          snap.forEach(d => remoteHistory.push({ id: d.id, ...d.data() }));
+          renderHomeHistory();
+        }, err => {
+          console.error('history listen err', err);
+          // fallback to local
+          loadHistoryLocal();
+        });
+      } catch(e) {
+        console.error('subscribeHistory err', e);
+        loadHistoryLocal();
+      }
+    }
+
+    function renderHomeHistory() {
+      const list = document.getElementById('hist-list');
+      const arr = remoteHistory.length ? remoteHistory : JSON.parse(localStorage.getItem('hist')||'[]');
+      if(!arr || arr.length===0) {
+        list.innerHTML = '';
+        document.getElementById('empty-msg').style.display = 'block';
+        return;
+      }
+      document.getElementById('empty-msg').style.display = 'none';
+      list.innerHTML = arr.map(h => `
+        <div class="hist-item">
+          <div><div style="font-weight:700">${h.date || (h.createdAt && h.createdAt.toDate ? h.createdAt.toDate().toLocaleString() : '-')}</div>
+            <div style="font-size:12px; color:#64748b">${h.shift || '-'} | Total: ${h.total_haul || '-'}</div></div>
+          <div style="color:#10b981">✔</div>
+        </div>
+      `).join('');
+    }
+
+    function loadHistoryLocal() {
+      const local = JSON.parse(localStorage.getItem('hist')||'[]');
+      if(local && local.length) {
+        remoteHistory = [];
+        document.getElementById('hist-list').innerHTML = local.map(h=>`
+          <div class="hist-item">
+            <div><div style="font-weight:700">${h.date}</div><div style="font-size:12px;color:#64748b">${h.shift} | Total: ${h.total_haul}</div></div>
+            <div style="color:#f59e0b">⚠</div>
+          </div>`).join('');
+        document.getElementById('empty-msg').style.display = 'none';
+      } else renderHomeHistory();
+    }
+
+    // ---------- SDT count subscribe ----------
+    function subscribeSdtCount() {
+      try {
+        db.collection('sdt').onSnapshot(snap=>{
+          // could update stat UI if needed
+        }, err => console.error('sdt count err', err));
+      } catch(e){}
+    }
+
+    // ---------- ADMIN (client-side) ----------
+    function adminLogin() {
+      const u = (document.getElementById('adm-user')||{value:''}).value.trim();
+      const p = (document.getElementById('adm-pass')||{value:''}).value.trim();
+      const msg = document.getElementById('adm-msg');
+      if(u===ADMIN_USER && p===ADMIN_PASS) {
+        sessionStorage.setItem('adminkey', ADMIN_TOKEN);
+        msg.innerText = 'Login sukses. Kamu bisa mengedit master.';
+        document.getElementById('loginBox').classList.add('hidden');
+        document.getElementById('adminArea').classList.remove('hidden');
+        renderChips(); // render admin lists
+        loadAdminHistory();
+      } else {
+        msg.innerText = 'Username atau password salah.';
+      }
+    }
+
+    function logoutAdmin() {
+      sessionStorage.removeItem('adminkey');
+      document.getElementById('loginBox').classList.remove('hidden');
+      document.getElementById('adminArea').classList.add('hidden');
+      document.getElementById('adm-msg').innerText = 'Logout.';
+    }
+
+    function addMaster(key) {
+      const inp = document.getElementById('inp-'+key.replace('master','').replace('supervisors','spv').replace('foremen','frm').replace('checkers','chk') ) || null;
+      // better: map keys
+      const mapping = { supervisors:'inp-spv', foremen:'inp-frm', checkers:'inp-chk', masterDrivers:'inp-drv', masterUnits:'inp-unit' };
+      const id = mapping[key] || null;
+      if(!id) return;
+      const v = (document.getElementById(id)||{value:''}).value.trim();
+      if(!v) return alert('Isi dulu');
+      // push locally in M
+      if(!M) M = {...DEFAULTS};
+      const arrKey = key === 'supervisors' ? 'spv' : (key === 'foremen' ? 'frm' : (key === 'checkers' ? 'chk' : key));
+      // normalize store names used in firestore: supervisors, foremen, checkers, masterUnits, masterDrivers
+      if(key === 'supervisors') M.spv.push(v);
+      else if(key === 'foremen') M.frm.push(v);
+      else if(key === 'checkers') M.chk.push(v);
+      else if(key === 'masterDrivers') M.driver.push(v);
+      else if(key === 'masterUnits') M.unit.push(v);
+      // clear input
+      document.getElementById(id).value = '';
+      renderChips();
+    }
+
+    function removeMaster(key, index) {
+      if(!M) return;
+      if(key==='supervisors') M.spv.splice(index,1);
+      else if(key==='foremen') M.frm.splice(index,1);
+      else if(key==='checkers') M.chk.splice(index,1);
+      else if(key==='masterDrivers') M.driver.splice(index,1);
+      else if(key==='masterUnits') M.unit.splice(index,1);
+      renderChips();
+    }
+
+    function saveAllMasters() {
+      const token = sessionStorage.getItem('adminkey');
+      if(!token) return alert('Login admin dulu.');
+      showLoader('Menyimpan master ke Firestore...');
+      const payload = {
+        supervisors: M.spv || [],
+        foremen: M.frm || [],
+        checkers: M.chk || [],
+        conv: M.conv || DEFAULTS.conv,
+        pt: M.pt || DEFAULTS.pt,
+        masterUnits: M.unit || DEFAULTS.unit,
+        masterDrivers: M.driver || DEFAULTS.driver,
+        _adminKey: token
+      };
+      db.doc('settings/lists').set(payload, { merge:true }).then(()=> {
+        hideLoader(); alert('Master tersimpan.'); loadAdminHistory();
+      }).catch(e=> { hideLoader(); console.error(e); alert('Gagal simpan: ' + e.message); });
+    }
+
+    function resetLocalMaster() {
+      if(confirm('Reset master ke default lokal?')) {
+        M = {...DEFAULTS};
+        renderChips();
+        renderConvTabs();
+      }
+    }
+
+    // ---------- Admin History ----------
+    function loadAdminHistory() {
+      try {
+        db.collection('history').orderBy('ts','desc').limit(50).get().then(snap=>{
+          const el = document.getElementById('adminHistory');
+          el.innerHTML = snap.docs.map(d => {
+            const it = d.data(); const t = it.ts && it.ts.toDate ? it.ts.toDate().toLocaleString() : '';
+            return `<div style="border-bottom:1px solid #f1f5f9; padding:8px 0"><div style="font-size:12px; color:#64748b">${t}</div><div style="font-weight:700">${escapeHtml(it.action || JSON.stringify(it).slice(0,100))}</div></div>`;
+          }).join('');
+        });
+      } catch(e){ console.error(e); }
+    }
+
+    // ---------- NAV ----------
+    function nav(p) {
+      document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));
+      document.getElementById('p-'+p).classList.add('active');
+      if(p==='home') {
+        renderHomeHistory();
+      } else if(p==='form') {
+        renderSdt();
+      } else if(p==='admin') {
+        // show login or admin area depending on session
+        if(sessionStorage.getItem('adminkey') === ADMIN_TOKEN) {
+          document.getElementById('loginBox').classList.add('hidden');
+          document.getElementById('adminArea').classList.remove('hidden');
+          loadAdminHistory();
+        } else {
+          document.getElementById('loginBox').classList.remove('hidden');
+          document.getElementById('adminArea').classList.add('hidden');
+        }
+      }
+    }
+
+    function openForm(){ nav('form'); resetForm(); }
+    function showLoader(t){ document.getElementById('loader').classList.remove('hidden'); document.getElementById('load-text').innerText = t||'Memproses...'; }
+    function hideLoader(){ document.getElementById('loader').classList.add('hidden'); }
+
+    function resetForm(){
+      // reset inputs
+      document.getElementById('i-tip').value = '0';
+      document.getElementById('i-trans').value = '0';
+      document.getElementById('m-spv').value = '';
+      document.getElementById('m-frm').value = '';
+      document.getElementById('m-chk').value = '';
+      // clear conveyors & sdt
+      C = {}; (M.conv||DEFAULTS.conv).forEach(c=>C[c]=[]);
+      activeC = M.conv?M.conv[0]:DEFAULTS.conv[0];
+      renderConv();
+      S = []; renderSdt();
+      document.getElementById('i-date').valueAsDate = new Date();
+      document.getElementById('t-haul').innerText = '0';
+    }
+
+    // ---------- UTIL ----------
+    function escapeHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // onload fallback init
+    window.onload = ()=> {
+      // ensure there is at least default conv arrays
+      if(!Object.keys(C).length) (DEFAULTS.conv||[]).forEach(c=>C[c]=[]);
+      renderConv();
+      renderSdt();
+      loadHistoryLocal();
+    };
+    </script>
 </body>
 </html>
