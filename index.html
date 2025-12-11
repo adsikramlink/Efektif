@@ -329,5 +329,438 @@ window.onload = async ()=>{
 };
 </script>
 
+
+
+<script>
+/* ========== GLOBALS (tidak mengubah HTML/CSS) ========== */
+const db = window._db;
+const _doc = window._doc;
+const _col = window._col;
+const _add = window._add;
+const _set = window._set;
+const _get = window._get;
+const _listen = window._listen;
+const _del = window._del; // deleteDoc
+
+// Master lists (ke-UI akan tetap sama)
+let masterSPV = [];
+let masterFRM = [];
+let masterCHK = [];
+let masterUnits = [];
+let masterDrivers = [];
+
+/* ================= Nav (3 halaman) ================= */
+function navTo(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const el = document.getElementById('page-'+page);
+  if(el) el.classList.add('active');
+  lucide.createIcons();
+  if(page === 'admin') renderAdminPanel();
+  if(page === 'form') initFormUI();
+}
+
+/* ================= Load master from Firestore ================= */
+async function loadMasterData(){
+  try{
+    const ref = _doc(db, "settings", "lists");
+    const snap = await _get(ref);
+    if(snap && snap.exists && snap.exists()){
+      const d = snap.data();
+      masterSPV = d.spv || [];
+      masterFRM = d.frm || [];
+      masterCHK = d.chk || [];
+      masterUnits = d.unit || [];
+      masterDrivers = d.driver || [];
+    } else {
+      // fallback default so UI tidak kosong
+      masterSPV = ['Ihsan R','Dicky F','Sopian'];
+      masterFRM = ['Gunawan TC','Hardiansyah','Lewi S','Elimelek J','Andry K'];
+      masterCHK = ['Indra R','Jemmie P','Ikram','Fahri T'];
+      masterUnits = ["01-F","02-F","03-F","3A-F","05-F","08-P","09-P"];
+      masterDrivers = ["Jeksen","Saipul","Julio","Ardianur"];
+    }
+    initChips('spvContainer', masterSPV);
+    initChips('foremanContainer', masterFRM);
+    initChips('checkerContainer', masterCHK);
+    renderUnitButtons();
+    renderAdminPanel();
+  }catch(e){
+    console.error("loadMasterData:", e);
+  }
+}
+
+/* ================= Admin: render/add/delete/save ================= */
+function renderAdminPanel(){
+  const build = (arr, type) => arr.map((v,i)=>`
+    <div class="flex justify-between items-center py-1">
+      <span>${v}</span>
+      <button onclick="deleteAdminItem('${type}', ${i})" class="text-red-500 text-xs">Hapus</button>
+    </div>
+  `).join('');
+  if(document.getElementById('admin-spv-list')) document.getElementById('admin-spv-list').innerHTML = build(masterSPV,'spv');
+  if(document.getElementById('admin-frm-list')) document.getElementById('admin-frm-list').innerHTML = build(masterFRM,'frm');
+  if(document.getElementById('admin-chk-list')) document.getElementById('admin-chk-list').innerHTML = build(masterCHK,'chk');
+  if(document.getElementById('admin-unit-list')) document.getElementById('admin-unit-list').innerHTML = build(masterUnits,'unit');
+  if(document.getElementById('admin-driver-list')) document.getElementById('admin-driver-list').innerHTML = build(masterDrivers,'driver');
+  lucide.createIcons();
+}
+
+function addAdminItem(type){
+  const el = document.getElementById(`admin-${type}-inp`);
+  if(!el) return;
+  const v = el.value.trim(); if(!v) return;
+  if(type==='spv') masterSPV.push(v);
+  if(type==='frm') masterFRM.push(v);
+  if(type==='chk') masterCHK.push(v);
+  if(type==='unit') masterUnits.push(v.toUpperCase());
+  if(type==='driver') masterDrivers.push(v);
+  el.value='';
+  renderAdminPanel(); initChips('spvContainer', masterSPV); initChips('foremanContainer', masterFRM); initChips('checkerContainer', masterCHK); renderUnitButtons();
+}
+
+function deleteAdminItem(type, idx){
+  if(!confirm("Hapus data ini?")) return;
+  if(type==='spv') masterSPV.splice(idx,1);
+  if(type==='frm') masterFRM.splice(idx,1);
+  if(type==='chk') masterCHK.splice(idx,1);
+  if(type==='unit') masterUnits.splice(idx,1);
+  if(type==='driver') masterDrivers.splice(idx,1);
+  renderAdminPanel(); initChips('spvContainer', masterSPV); initChips('foremanContainer', masterFRM); initChips('checkerContainer', masterCHK); renderUnitButtons();
+}
+
+async function saveAdminMaster(){
+  try{
+    await _set(_doc(db,"settings","lists"), {
+      spv: masterSPV,
+      frm: masterFRM,
+      chk: masterCHK,
+      unit: masterUnits,
+      driver: masterDrivers,
+      _adminKey: "mpadmin"
+    }, { merge: true });
+    alert("Master tersimpan ke server");
+  }catch(e){ console.error("saveAdminMaster", e); alert("Gagal simpan master"); }
+}
+
+/* ================= Chips & unit buttons (form) ================= */
+function initChips(id,list){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.innerHTML = list.map(n=>`
+    <label class="chip-label inline-block mr-2 mb-1">
+      <input type="checkbox" value="${n}" class="hidden">
+      <div class="chip-div">${n}</div>
+    </label>
+  `).join('');
+}
+
+function renderUnitButtons(){
+  const wrap = document.getElementById('unitBtnContainer');
+  if(!wrap) return;
+  wrap.innerHTML = masterUnits.map(u=>`<button onclick="addSdt('${u}')" class="bg-white border border-slate-300 text-xs font-bold px-3 py-1 rounded">${u}</button>`).join('');
+}
+
+/* ================= Form init & helpers (preserve original logic) ================= */
+let activeSD = 'SD1';
+let conveyorData = { SD1:[], SD2:[], SD3:[] };
+let sdtData = [];
+
+function initFormUI(){
+  // keep original behaviour: set date if empty and ensure some rows
+  const t = document.getElementById('inputTanggal');
+  if(t && !t.value) t.value = new Date().toISOString().split('T')[0];
+  if(conveyorData.SD1.length===0 && conveyorData.SD2.length===0 && conveyorData.SD3.length===0){
+    addTimeRow('SD1'); addTimeRow('SD1'); addTimeRow('SD2'); addTimeRow('SD3');
+  }
+  renderSdtList();
+  lucide.createIcons();
+}
+
+/* ---------- Conveyor functions (same as original) ---------- */
+function switchTab(sd){
+  activeSD = sd;
+  ['SD1','SD2','SD3'].forEach(n=>{
+    const btn = document.getElementById('tab-'+n);
+    if(btn) btn.className = `tab-btn ${n===sd?'active':''}`;
+    const cont = document.getElementById('container-'+n);
+    if(cont) cont.className = `space-y-2 ${n===sd?'':'hidden'}`;
+  });
+}
+
+function addTimeRow(sd){
+  const idx = conveyorData[sd].length;
+  conveyorData[sd].push({ sh:'', sm:'', fh:'', fm:'' });
+  const div = document.createElement('div');
+  div.id = `row-${sd}-${idx}`;
+  div.className = "grid grid-cols-12 gap-2 items-center bg-white p-2 rounded border border-slate-100 shadow-sm";
+  div.innerHTML = `
+    <div class="col-span-1 text-center font-bold text-slate-300 text-xs">${idx+1}</div>
+    <div class="col-span-5 time-box"><input type="tel" maxlength="2" placeholder="HH" class="time-digit" oninput="updTime('${sd}',${idx},'sh',this)">:<input type="tel" maxlength="2" placeholder="MM" class="time-digit" oninput="updTime('${sd}',${idx},'sm',this)"></div>
+    <div class="col-span-5 time-box"><input type="tel" maxlength="2" placeholder="HH" class="time-digit" oninput="updTime('${sd}',${idx},'fh',this)">:<input type="tel" maxlength="2" placeholder="MM" class="time-digit" oninput="updTime('${sd}',${idx},'fm',this)"></div>
+    <div class="col-span-1 text-center"><button onclick="delTimeRow('${sd}',${idx})" class="text-slate-300 hover:text-red-500 font-bold">×</button></div>
+  `;
+  document.getElementById(`container-${sd}`).appendChild(div);
+}
+
+function updTime(sd, idx, f, el){
+  let v = el.value.replace(/\D/g,''); if(v.length>2) v=v.slice(0,2);
+  if(v>23 && (f==='sh'||f==='fh')) v='23';
+  if(v>59 && (f==='sm'||f==='fm')) v='59';
+  el.value = v;
+  conveyorData[sd][idx][f] = v;
+  calcConv(sd);
+  if(v.length===2){ let n = el.nextElementSibling; if(n && n.tagName==='INPUT') n.focus(); }
+}
+
+function delTimeRow(sd, idx){
+  const row = document.getElementById(`row-${sd}-${idx}`);
+  if(row) row.style.display='none';
+  conveyorData[sd][idx] = { sh:'', sm:'', fh:'', fm:'' };
+  calcConv(sd);
+}
+
+function calcConv(sd){
+  let tot = 0;
+  conveyorData[sd].forEach(d=>{
+    if(d.sh!==''&&d.sm!==''&&d.fh!==''&&d.fm!==''){
+      let s = parseInt(d.sh)*60 + parseInt(d.sm);
+      let f = parseInt(d.fh)*60 + parseInt(d.fm);
+      if(f < s) f += 1440;
+      tot += (f - s);
+    }
+  });
+  const th = Math.floor(tot/60), tm = tot%60;
+  const resEl = document.getElementById(`res-${sd}`);
+  if(resEl) resEl.innerText = `${th}j ${tm}m`;
+  const rem = (12*60) - tot;
+  const rh = Math.floor(Math.abs(rem)/60), rm = Math.abs(rem)%60;
+  const effEl = document.getElementById(`eff-${sd}`);
+  if(!effEl) return;
+  if(tot===0){ effEl.innerText='-'; effEl.className="text-[10px] font-bold text-slate-300"; effEl.dataset.copy='-'; }
+  else if(rem>=0){ effEl.innerText=`${rh}j ${rm}m`; effEl.className="text-[10px] font-bold text-emerald-600"; effEl.dataset.copy=`${rh} Jam ${String(rm).padStart(2,'0')} Menit`; }
+  else { effEl.innerText=`${rh}j ${rm}m (Over)`; effEl.className="text-[10px] font-bold text-red-600"; effEl.dataset.copy=`${rh} Jam ${String(rm).padStart(2,'0')} Menit (Kelebihan Durasi)`; }
+}
+
+/* ================ Unit running (same logic) ================ */
+function calcUnit(id){
+  const val = (s) => parseFloat(document.getElementById(s).value)||0;
+  const rs = val(`${id}-run-siang`), ts = val(`${id}-trip-siang`), rm = val(`${id}-run-malam`), tm = val(`${id}-trip-malam`);
+  if(document.getElementById(`${id}-res-siang`)) document.getElementById(`${id}-res-siang`).innerText = (ts - rs);
+  if(document.getElementById(`${id}-res-malam`)) document.getElementById(`${id}-res-malam`).innerText = ((tm - ts) - rm);
+  let tot=0; ['mha','kai','buma'].forEach(k => tot += (val(`${k}-trip-malam`)-val(`${k}-trip-siang`)));
+  const gt = document.getElementById('grand-total'); if(gt) gt.innerText = tot + " Trip";
+}
+
+/* ================= SDT (preserve original UI behavior) ================= */
+function addSdt(u){
+  sdtData.push({ unit:u, driver:'', trip:'', ket:'' });
+  renderSdtList();
+}
+function delSdt(i){ sdtData.splice(i,1); renderSdtList(); }
+function updSdt(i,f,v){ sdtData[i][f] = v; }
+function renderSdtList(){
+  const c = document.getElementById('sdtList');
+  const m = document.getElementById('emptyMsg');
+  if(!c) return;
+  if(sdtData.length===0){ c.innerHTML=''; if(m) m.style.display='block'; return; }
+  if(m) m.style.display='none';
+  const drvOpts = `<option value="">Driver...</option>` + masterDrivers.map(d => `<option value="${d}">${d}</option>`).join('');
+  c.innerHTML = sdtData.map((d,i)=>`
+    <div class="bg-white p-2 rounded-lg border border-slate-200 shadow-sm flex flex-col gap-2 relative">
+      <div class="flex justify-between items-center border-b pb-1">
+        <span class="font-bold text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">${d.unit}</span>
+        <button onclick="delSdt(${i})" class="text-red-400 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+      </div>
+      <div class="grid grid-cols-12 gap-2 text-xs">
+        <div class="col-span-5"><select onchange="sdtData[${i}].driver=this.value" class="w-full border rounded p-1 bg-white outline-none">${drvOpts.replace(`value="${d.driver}"`,`value="${d.driver}" selected`)}</select></div>
+        <div class="col-span-3 relative"><input type="number" value="${d.trip}" placeholder="0" oninput="sdtData[${i}].trip=this.value" class="w-full border rounded p-1 text-center font-bold outline-none"></div>
+        <div class="col-span-4"><input type="text" value="${d.ket}" placeholder="Ket..." oninput="sdtData[${i}].ket=this.value" class="w-full border rounded p-1 text-red-500 italic outline-none"></div>
+      </div>
+    </div>
+  `).join('');
+  lucide.createIcons();
+}
+
+/* ================= Get checked chips (and manual inputs) ================= */
+function getChecked(id){
+  const arr = Array.from(document.querySelectorAll(`#${id} input:checked`)).map(e => e.parentElement.innerText.trim());
+  let manual = '';
+  if(id.includes('spv')) manual = document.getElementById('inputSupervisorLainnya')?.value.trim() || '';
+  if(id.includes('foreman')) manual = document.getElementById('inputForemanLainnya')?.value.trim() || '';
+  if(id.includes('checker')) manual = document.getElementById('inputCheckerLainnya')?.value.trim() || '';
+  if(manual) arr.push(manual);
+  return arr.join(', ');
+}
+
+/* ================= COPY REPORT (preserve behaviour) ================= */
+function copyReport(isMalam){
+  try{
+    const shift = document.getElementById('inputShift').value;
+    const date = document.getElementById('inputTanggal').value.split('-');
+    const bulan = ["JAN","FEB","MAR","APR","MEI","JUN","JUL","AGU","SEP","OKT","NOV","DES"];
+    const fmtDate = date.length===3 ? `${date[2]}/${bulan[parseInt(date[1])-1]}/${date[0].slice(-2)}` : '-';
+    let txt = `*CHP OPERATION*\n*${shift}*\n*${fmtDate}*\n\nSupervisor : ${getChecked('spvContainer')}\nForeman   : ${getChecked('foremanContainer')}\nChecker      : ${getChecked('checkerContainer')}\n\nEfektivitas Running\n`;
+    ['SD1','SD2','SD3'].forEach(sd => txt += `- ${sd} = ${(document.getElementById(`eff-${sd}`).dataset.copy||'-')}\n`);
+    txt += `\n`;
+    const val = (id) => parseFloat(document.getElementById(id).value)||0;
+    const calc = (b) => isMalam ? (val(`${b}-trip-malam`)-val(`${b}-trip-siang`)) : val(`${b}-trip-siang`);
+    const mt=calc('mha'), kt=calc('kai'), bt=calc('buma'), tot=mt+kt+bt;
+    const tip=val('inputTippingRom'), trans=val('inputTransferRom');
+    txt += `Hauling\nMHA    : ${mt} TRIP\nBUMA   : ${bt} TRIP\nKAI    : ${kt} TRIP\nIP     : 0 TRIP\nTotal Hauling : ${tot} Trip\n\n`;
+    txt += `TIPPING ROM        = ${tip} Trip\nTRANSFER ROM   = ${trans} Trip\nTRANSFER ROM + HAULING = ${trans+tot} Trip\n\n`;
+    const suf = isMalam ? 'malam' : 'siang';
+    txt += `Unit 2 Trip\n- MHA   = ${document.getElementById(`mha-res-${suf}`).innerText} Unit\n- BUMA  = ${document.getElementById(`buma-res-${suf}`).innerText} Unit\n- KAI   = ${document.getElementById(`kai-res-${suf}`).innerText} Unit\n\n`;
+    txt += `Unit SDT Running:\n`;
+    if(sdtData.length === 0) txt += `(List Kosong)\n`;
+    else sdtData.forEach((d,i) => txt += `${i+1}.SDT ${d.unit} ${d.driver?`(${d.driver})`:''} : ${d.trip?d.trip+' Trip':''} ${d.ket?`*${d.ket}*`:''}\n`);
+    const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    showToast();
+    // after copying, save to history automatically
+    saveHistoryFromCopy();
+  }catch(e){ console.error("copyReport error", e); }
+}
+
+function showToast(){
+  const t = document.getElementById('toast');
+  if(!t) return;
+  t.classList.remove('hidden');
+  setTimeout(()=> t.classList.add('translate-y-10'), 1800);
+  setTimeout(()=> t.classList.add('hidden'), 2200);
+}
+
+/* ================= Save history (normal save and from copy) ================= */
+async function saveHistory(){
+  try{
+    const record = {
+      date: document.getElementById('inputTanggal').value,
+      shift: document.getElementById('inputShift').value,
+      total: document.getElementById('grand-total').innerText || '0',
+      spv: Array.from(document.querySelectorAll('#spvContainer input:checked')).map(i=>i.value),
+      frm: Array.from(document.querySelectorAll('#foremanContainer input:checked')).map(i=>i.value),
+      chk: Array.from(document.querySelectorAll('#checkerContainer input:checked')).map(i=>i.value),
+      sdt: sdtData,
+      time: Date.now()
+    };
+    await _add(_col(db,'history'), record);
+    alert("Form berhasil disimpan!");
+    navTo('home');
+  }catch(e){ console.error("saveHistory error", e); alert("Gagal simpan history"); }
+}
+
+// when copyReport calls, use slightly different shape (so duplicates ok)
+async function saveHistoryFromCopy(){
+  try{
+    const record = {
+      date: document.getElementById('inputTanggal').value,
+      shift: document.getElementById('inputShift').value,
+      total: document.getElementById('grand-total').innerText || '0',
+      spv: getChecked('spvContainer'),
+      frm: getChecked('foremanContainer'),
+      chk: getChecked('checkerContainer'),
+      sdt: sdtData,
+      time: Date.now()
+    };
+    await _add(_col(db,'history'), record);
+    // update history list will happen from realtime listener
+  }catch(e){ console.error("saveHistoryFromCopy error", e); }
+}
+
+/* ================= History realtime + open detail + delete ================= */
+function loadHistoryRealtime(){
+  try{
+    const ref = _col(db, 'history');
+    _listen(ref, snap=>{
+      const list = document.getElementById('history-list');
+      let html = '';
+      let count = 0;
+      snap.forEach(doc=>{
+        const d = doc.data();
+        const id = doc.id;
+        count++;
+        html += `
+          <div class="bg-white p-3 rounded-lg shadow mb-2 border border-slate-200 flex justify-between items-center">
+            <div onclick="openHistory('${id}')" style="cursor:pointer">
+              <div class="font-bold">${d.date || '-'}</div>
+              <div class="text-xs text-slate-500">${d.shift || '-'}</div>
+              <div class="text-sm mt-1 font-semibold text-indigo-700">Total: ${d.total || '-'}</div>
+            </div>
+            <div class="flex flex-col items-end gap-1">
+              <button onclick="openHistory('${id}')" class="text-xs text-slate-600">Buka</button>
+              <button onclick="deleteHistory('${id}')" class="text-red-500 text-xs">Hapus</button>
+            </div>
+          </div>
+        `;
+      });
+      if(list) list.innerHTML = html;
+      const empty = document.getElementById('empty-history');
+      if(empty) empty.style.display = count ? 'none' : 'block';
+      lucide.createIcons();
+    });
+  }catch(e){ console.error("loadHistoryRealtime", e); }
+}
+
+async function deleteHistory(id){
+  if(!confirm("Hapus riwayat ini?")) return;
+  try{
+    await _del(_doc(db,"history",id));
+  }catch(e){ console.error("deleteHistory", e); alert("Gagal hapus history"); }
+}
+
+/* ============== Open history detail into form ============== */
+async function openHistory(id){
+  try{
+    const snap = await _get(_doc(db,"history",id));
+    if(!snap.exists()) { alert("Data tidak ditemukan"); return; }
+    const d = snap.data();
+    // navigate to form and populate fields (non-destructive)
+    navTo('form');
+    // set date & shift
+    if(document.getElementById('inputTanggal')) document.getElementById('inputTanggal').value = d.date || '';
+    if(document.getElementById('inputShift')) document.getElementById('inputShift').value = d.shift || 'DAY SHIFT';
+    // set totals if present
+    if(document.getElementById('grand-total')) document.getElementById('grand-total').innerText = (d.total || '0') + (typeof d.total === 'string' && d.total.includes('Trip')? '' : ' Trip');
+    // set chips (check matching values)
+    if(d.spv){
+      // clear all first
+      document.querySelectorAll('#spvContainer input').forEach(i => i.checked = false);
+      d.spv.forEach(val => {
+        const el = Array.from(document.querySelectorAll('#spvContainer input')).find(inp => inp.parentElement.innerText.trim() === val || inp.value === val);
+        if(el) el.checked = true;
+      });
+    }
+    if(d.frm){
+      document.querySelectorAll('#foremanContainer input').forEach(i => i.checked = false);
+      d.frm.forEach(val => {
+        const el = Array.from(document.querySelectorAll('#foremanContainer input')).find(inp => inp.parentElement.innerText.trim() === val || inp.value === val);
+        if(el) el.checked = true;
+      });
+    }
+    if(d.chk){
+      document.querySelectorAll('#checkerContainer input').forEach(i => i.checked = false);
+      d.chk.forEach(val => {
+        const el = Array.from(document.querySelectorAll('#checkerContainer input')).find(inp => inp.parentElement.innerText.trim() === val || inp.value === val);
+        if(el) el.checked = true;
+      });
+    }
+    // sdt: if present, set sdtData and render
+    if(d.sdt && Array.isArray(d.sdt)){
+      sdtData = d.sdt.map(x => ({ unit: x.unit||x.u||'', driver: x.driver||x.d||'', trip: x.trip||x.t||'', ket: x.ket||x.k||'' }));
+      renderSdtList();
+    }
+  }catch(e){ console.error("openHistory", e); alert("Gagal buka history"); }
+}
+
+/* ================= INIT onload ================= */
+window.onload = async ()=>{
+  try{
+    await loadMasterData();
+    loadHistoryRealtime();
+    lucide.createIcons();
+  }catch(e){ console.error("onload", e); }
+};
+</script>
+
+
+
 </body>
 </html>
