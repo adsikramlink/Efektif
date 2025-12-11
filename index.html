@@ -940,5 +940,237 @@ window.onload = async () => {
 };
 </script>
 
+<script type="module">
+    // FIREBASE IMPORT
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { 
+        getFirestore, collection, doc, addDoc, setDoc, getDoc, onSnapshot, deleteDoc 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // KONFIGURASI FIREBASE
+    const firebaseConfig = {
+        apiKey: "AIzaSyDGPkoewPcjffZ8ORwB3rrVAKiYtRYzuEk",
+        authDomain: "retase-20ec2.firebaseapp.com",
+        projectId: "retase-20ec2",
+        storageBucket: "retase-20ec2.firebasestorage.app",
+        messagingSenderId: "414104675676",
+        appId: "1:414104675676:web:95f0012dadfb1743ff8d99",
+        measurementId: "G-64RN0GNMPW"
+    };
+
+    // INIT
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // SHORTHAND
+    window._db = db;
+    window._col = (c, n) => collection(c, n);
+    window._doc = (c, n, id) => doc(c, n, id);
+    window._add = (c, d) => addDoc(c, d);
+    window._set = (r, d, opt) => setDoc(r, d, opt);
+    window._get = (r) => getDoc(r);
+    window._del = (r) => deleteDoc(r);
+    window._listen = (c, f) => onSnapshot(c, f);
+
+</script>
+
+
+
+
+<script>
+// ============= MASTER DATA LOCAL =============
+let masterSPV = [];
+let masterFRM = [];
+let masterCHK = [];
+let masterUnits = [];
+let masterDrivers = [];
+
+// Ambil master dari Firestore
+async function loadMasterData() {
+    const ref = window._doc(_db, "settings", "lists");
+    const snap = await window._get(ref);
+
+    if (snap.exists()) {
+        const d = snap.data();
+        masterSPV = d.spv || [];
+        masterFRM = d.frm || [];
+        masterCHK = d.chk || [];
+        masterUnits = d.unit || [];
+        masterDrivers = d.driver || [];
+    }
+
+    renderAdminPanel();
+    initChips("spvContainer", masterSPV);
+    initChips("foremanContainer", masterFRM);
+    initChips("checkerContainer", masterCHK);
+    renderUnitButtons();
+}
+
+// Render daftar di admin
+function renderAdminPanel() {
+    const build = (arr, type) =>
+        arr.map((v,i)=>`
+            <div class="flex justify-between items-center py-1">
+                <span>${v}</span>
+                <button onclick="deleteMasterItem('${type}', ${i})" class="text-red-500">
+                    <i data-lucide='trash-2' class='w-4 h-4'></i>
+                </button>
+            </div>
+        `).join("");
+
+    document.getElementById("admin-spv-list").innerHTML = build(masterSPV, "spv");
+    document.getElementById("admin-frm-list").innerHTML = build(masterFRM, "frm");
+    document.getElementById("admin-chk-list").innerHTML = build(masterCHK, "chk");
+    document.getElementById("admin-unit-list").innerHTML = build(masterUnits, "unit");
+    document.getElementById("admin-driver-list").innerHTML = build(masterDrivers, "driver");
+
+    lucide.createIcons();
+}
+
+// Tambah master item
+function addAdminItem(type) {
+    const inp = document.getElementById(`admin-${type}-inp`);
+    const v = inp.value.trim();
+    if (!v) return;
+
+    if (type === "spv") masterSPV.push(v);
+    if (type === "frm") masterFRM.push(v);
+    if (type === "chk") masterCHK.push(v);
+    if (type === "unit") masterUnits.push(v.toUpperCase());
+    if (type === "driver") masterDrivers.push(v);
+
+    inp.value = "";
+    renderAdminPanel();
+    initChips("spvContainer", masterSPV);
+    initChips("foremanContainer", masterFRM);
+    initChips("checkerContainer", masterCHK);
+    renderUnitButtons();
+}
+
+// Hapus data master
+function deleteMasterItem(type, index) {
+    if (!confirm("Yakin hapus?")) return;
+
+    if (type === "spv") masterSPV.splice(index,1);
+    if (type === "frm") masterFRM.splice(index,1);
+    if (type === "chk") masterCHK.splice(index,1);
+    if (type === "unit") masterUnits.splice(index,1);
+    if (type === "driver") masterDrivers.splice(index,1);
+
+    renderAdminPanel();
+    initChips("spvContainer", masterSPV);
+    initChips("foremanContainer", masterFRM);
+    initChips("checkerContainer", masterCHK);
+    renderUnitButtons();
+}
+
+// Simpan master ke Firestore
+async function saveAdminMaster() {
+    const ref = window._doc(_db, "settings", "lists");
+
+    await window._set(ref, {
+        spv: masterSPV,
+        frm: masterFRM,
+        chk: masterCHK,
+        unit: masterUnits,
+        driver: masterDrivers,
+        _adminKey: "mpadmin"
+    }, { merge:true });
+
+    alert("Master berhasil disimpan ke server!");
+}
+</script>
+
+
+
+
+<script>
+// ================= HISTORY REALTIME =================
+function loadHistoryRealtime() {
+    const ref = window._col(_db, "history");
+
+    window._listen(ref, snap => {
+        const list = document.getElementById("history-list");
+        let html = "";
+        let count = 0;
+
+        snap.forEach(doc => {
+            const d = doc.data();
+            count++;
+
+            html += `
+                <div class="bg-white p-3 rounded-lg shadow mb-2 border border-slate-200 flex justify-between items-center">
+                    <div>
+                        <div class="font-bold">${d.tanggal}</div>
+                        <div class="text-xs text-slate-500">${d.shift}</div>
+                        <div class="text-sm mt-1 font-semibold text-indigo-700">
+                            Total: ${d.total}
+                        </div>
+                    </div>
+
+                    <button onclick="deleteHistory('${doc.id}')" class="text-red-500">
+                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            `;
+        });
+
+        list.innerHTML = html;
+        document.getElementById("empty-history").style.display =
+            count > 0 ? "none" : "block";
+
+        lucide.createIcons();
+    });
+}
+
+// ================= HAPUS HISTORY =================
+async function deleteHistory(id) {
+    if (!confirm("Hapus laporan ini?")) return;
+
+    const ref = window._doc(_db, "history", id);
+    await window._del(ref);
+}
+
+// ================= SIMPAN HISTORY =================
+async function saveHistory() {
+    const payload = {
+        tanggal : document.getElementById("inputTanggal").value,
+        shift   : document.getElementById("inputShift").value,
+        total   : document.getElementById("grand-total").innerText,
+        convoy  : {
+            SD1: document.getElementById("eff-SD1").innerText,
+            SD2: document.getElementById("eff-SD2").innerText,
+            SD3: document.getElementById("eff-SD3").innerText,
+        },
+        time: Date.now()
+    };
+
+    await window._add(window._col(_db, "history"), payload);
+
+    alert("Laporan disimpan!");
+
+    // Reset dan kembali ke Home
+    navTo("home");
+}
+
+// ================= NAVIGASI =================
+function navTo(page) {
+    document.getElementById("page-home").classList.add("hidden");
+    document.getElementById("page-form").classList.add("hidden");
+    document.getElementById("page-admin").classList.add("hidden");
+
+    document.getElementById(`page-${page}`).classList.remove("hidden");
+}
+
+// ================= INIT =================
+window.onload = async () => {
+    await loadMasterData();
+    loadHistoryRealtime();
+    lucide.createIcons();
+};
+</script>
+
+
+
 </body>
 </html>
