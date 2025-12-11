@@ -1,717 +1,1162 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Efektivitas Running - v3.0 Final (Single File)</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-<script src="https://unpkg.com/lucide@latest"></script>
-<style>
-  body { font-family: 'Inter', sans-serif; background:#f1f5f9; color:#0f172a; padding-bottom:120px; }
-  .navbar { background:#0f172a; color:white; padding:12px 16px; position:sticky; top:0; z-index:60; display:flex; justify-content:space-between; align-items:center; box-shadow:0 4px 10px rgba(0,0,0,0.08); }
-  .container { max-width:980px; margin:18px auto; padding:0 14px; }
-  .card { background:white;border-radius:12px;box-shadow:0 1px 3px rgba(2,6,23,0.06); margin-bottom:16px; overflow:hidden; }
-  .card-head { background:#f8fafc; padding:12px 14px; font-weight:700; color:#334155; border-bottom:1px solid #e6eefb; text-transform:uppercase; font-size:13px; }
-  .card-body { padding:14px; }
-  .muted { color:#64748b; font-size:13px; }
-  .fab { position:fixed; right:20px; bottom:20px; width:56px; height:56px; border-radius:50%; background:#2563eb; color:white; display:flex; align-items:center; justify-content:center; font-size:28px; z-index:80; border:none; box-shadow:0 8px 20px rgba(37,99,235,0.25); }
-  .hidden { display:none !important; }
-  .chip { padding:6px 10px;border-radius:999px;border:1px solid #e6eefb;background:white;color:#475569;cursor:pointer;font-weight:700; margin-right:8px; display:inline-block; }
-  .chip.active { background:#4f46e5; color:white; border-color:#4f46e5; }
-  .history-item { padding:12px; border-radius:8px; border:1px solid #eef2ff; background:white; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; }
-  .back-small { cursor:pointer; color:#0f172a; font-weight:700; margin-right:8px; }
-  .toast { position:fixed; left:50%; transform:translateX(-50%); top:90px; background:#0f172a; color:white; padding:8px 12px; border-radius:8px; display:none; z-index:200; }
-  input, select { font-weight:700; padding:8px 10px; border-radius:8px; border:1px solid #e6eefb; width:100%; }
-  .table-input { width:100%; text-align:center; background:transparent; border:none; border-bottom:2px solid #e6eefb; padding:6px; font-weight:700; }
-  .time-box { display:flex; align-items:center; gap:4px; background:white; border:1px solid #e6eefb; border-radius:8px; padding:6px; }
-  .time-digit { width:36px; text-align:center; border:none; outline:none; font-weight:700; background:transparent; }
-  .chip-div { padding:6px 10px; border-radius:999px; border:1px solid #e6eefb; background:white; color:#64748b; font-weight:700; display:inline-block; cursor:pointer; }
-  .tab-btn { padding:6px 12px; border-radius:8px; font-weight:700; background:#f1f5f9; border:1px solid transparent; cursor:pointer; }
-  .tab-btn.active { background:white; color:#0f172a; box-shadow:0 2px 6px rgba(2,6,23,0.06); border:1px solid #e6eefb; }
-</style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+
+    <title>Efektivitas Running</title>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            background: #f1f5f9;
+            font-family: 'Inter', sans-serif;
+        }
+        .page { display: none; }
+        .page.active { display: block; }
+    </style>
+
+    <!-- Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, collection, addDoc } 
+            from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        window.firebaseConfig = {
+            apiKey: "AIzaSyDGPkoewPcjffZ8ORwB3rrVAKiYtRYzuEk",
+            authDomain: "retase-20ec2.firebaseapp.com",
+            projectId: "retase-20ec2",
+            storageBucket: "retase-20ec2.firebasestorage.app",
+            messagingSenderId: "414104675676",
+            appId: "1:414104675676:web:95f0012dadfb1743ff8d99",
+            measurementId: "G-64RN0GNMPW"
+        };
+
+        const app = initializeApp(window.firebaseConfig);
+        const db = getFirestore(app);
+
+        window._db = db;     // simpan global agar bisa dipakai di index
+        window._doc = doc;
+        window._set = setDoc;
+        window._get = getDoc;
+        window._update = updateDoc;
+        window._add = addDoc;
+        window._col = collection;
+        window._listen = onSnapshot;
+    </script>
 </head>
+
 <body>
 
-  <div class="navbar">
-    <div>
-      <div style="font-weight:800">Efektivitas Running</div>
-      <div class="muted" style="font-size:12px">Dashboard v3.0 Final</div>
-    </div>
-    <div style="display:flex; gap:8px; align-items:center;">
-      <button id="btnAdmin" class="bg-emerald-500 text-white px-3 py-2 rounded-md font-bold text-sm">Admin</button>
-      <button id="btnDown" class="bg-indigo-600 text-white px-3 py-2 rounded-md font-bold text-sm">↓ Bawah</button>
-    </div>
-  </div>
+<!-- ========================================================= -->
+<!-- ====================== HALAMAN HOME ====================== -->
+<!-- ========================================================= -->
 
-  <div class="container">
+<div id="page-home" class="page active">
 
-    <!-- HOME / HISTORY -->
-    <div id="page-home">
-      <div class="card">
-        <div class="card-head">Riwayat Terakhir</div>
-        <div class="card-body">
-          <div id="historyList"><div class="muted">Memuat history...</div></div>
-        </div>
-      </div>
 
-      <!-- Admin summary (quick open) -->
-      <div class="card">
-        <div class="card-head">Admin - Tambah Data Master</div>
-        <div class="card-body">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <div class="muted small">Klik tombol Admin di pojok atas untuk buka panel tambah data master.</div>
-            <div><button id="openAdminInline" class="bg-indigo-600 text-white px-3 py-2 rounded-md font-bold">Buka Admin</button></div>
-          </div>
-          <div id="adminPreview" class="mt-4 muted small">
-            <div><strong>Supervisor:</strong> <span id="pSpv">-</span></div>
-            <div><strong>Foreman:</strong> <span id="pFrm">-</span></div>
-            <div><strong>Checker:</strong> <span id="pChk">-</span></div>
-            <div><strong>Unit:</strong> <span id="pUnit">-</span></div>
-            <div><strong>Driver:</strong> <span id="pDriver">-</span></div>
-          </div>
-        </div>
-      </div>
+<button onclick="navTo('admin')" class="text-white">
+    <i data-lucide="settings" class="w-5 h-5"></i>
+</button>
 
-    </div>
-
-    <!-- FORM PAGE -->
-    <div id="page-form" class="hidden">
-      <div class="card">
-        <div class="card-head" style="display:flex; justify-content:space-between; align-items:center;">
-          <div style="display:flex; align-items:center;">
-            <div class="back-small" onclick="showPage('home')">←</div>
-            <div><strong>Input Data</strong><div class="muted small">Isi laporan harian</div></div>
-          </div>
-          <div><span id="formNote" class="muted small"></span></div>
+    <div class="bg-slate-900 text-white px-4 py-4 flex justify-between items-center shadow-md">
+        <div>
+            <h1 class="text-lg font-bold">Efektivitas Running</h1>
+            <p class="text-[10px] text-slate-300">Dashboard</p>
         </div>
 
-        <div class="card-body">
-          <!-- 0. DATA OPERASIONAL -->
-          <div class="mb-4">
-            <div class="text-sm font-bold text-slate-700">0. Data Operasional</div>
-            <div class="grid grid-cols-2 gap-4 mt-3">
-              <div><label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Shift</label><select id="inputShift" class="input-base" style="width:100%; padding:8px; border-radius:6px;"><option value="NIGHT SHIFT">🌙 NIGHT SHIFT</option><option value="DAY SHIFT">☀️ DAY SHIFT</option></select></div>
-              <div><label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Tanggal</label><input type="date" id="inputTanggal" class="input-base" style="padding:8px; border-radius:6px;"></div>
+        <!-- Tombol ADMIN (ikon gear) -->
+        <button onclick="navTo('admin')" class="p-2 hover:bg-slate-700 rounded">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+        </button>
+    </div>
+
+    <div class="p-4" id="history-list">
+        <!-- History akan dimasukkan dari BAGIAN 3 -->
+    </div>
+
+    <button onclick="navTo('form')"
+        class="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white text-3xl w-14 h-14 rounded-full shadow-lg flex items-center justify-center">
+        +
+    </button>
+</div>
+
+
+
+<!-- PAGE ADMIN -->
+<div id="page-admin" class="hidden max-w-3xl mx-auto px-4 mt-6 mb-24">
+
+    <div class="bg-slate-900 text-white py-4 px-4 sticky top-0 z-50 shadow-md flex justify-between items-center">
+        <button onclick="navTo('home')" class="text-xs font-bold">&larr; Kembali</button>
+        <h1 class="text-lg font-bold">Admin Panel</h1>
+        <div></div>
+    </div>
+
+    <div class="mt-4 space-y-6">
+
+        <!-- SUPERVISOR -->
+        <section class="bg-white rounded-xl shadow border p-4">
+            <h2 class="font-bold text-slate-700 text-sm mb-2">Supervisor</h2>
+            <div id="admin-spv-list" class="mb-2 text-xs text-slate-600"></div>
+            <div class="flex gap-2">
+                <input id="admin-spv-inp" placeholder="Tambah Supervisor" class="input-base">
+                <button onclick="addAdminItem('spv')" class="px-3 bg-indigo-600 text-white rounded">+</button>
+            </div>
+        </section>
+
+        <!-- FOREMAN -->
+        <section class="bg-white rounded-xl shadow border p-4">
+            <h2 class="font-bold text-slate-700 text-sm mb-2">Foreman</h2>
+            <div id="admin-frm-list" class="mb-2 text-xs text-slate-600"></div>
+            <div class="flex gap-2">
+                <input id="admin-frm-inp" placeholder="Tambah Foreman" class="input-base">
+                <button onclick="addAdminItem('frm')" class="px-3 bg-indigo-600 text-white rounded">+</button>
+            </div>
+        </section>
+
+        <!-- CHECKER -->
+        <section class="bg-white rounded-xl shadow border p-4">
+            <h2 class="font-bold text-slate-700 text-sm mb-2">Checker</h2>
+            <div id="admin-chk-list" class="mb-2 text-xs text-slate-600"></div>
+            <div class="flex gap-2">
+                <input id="admin-chk-inp" placeholder="Tambah Checker" class="input-base">
+                <button onclick="addAdminItem('chk')" class="px-3 bg-indigo-600 text-white rounded">+</button>
+            </div>
+        </section>
+
+        <!-- UNIT SDT -->
+        <section class="bg-white rounded-xl shadow border p-4">
+            <h2 class="font-bold text-slate-700 text-sm mb-2">Unit SDT</h2>
+            <div id="admin-unit-list" class="mb-2 text-xs text-slate-600"></div>
+            <div class="flex gap-2">
+                <input id="admin-unit-inp" placeholder="Tambah Unit" class="input-base">
+                <button onclick="addAdminItem('unit')" class="px-3 bg-indigo-600 text-white rounded">+</button>
+            </div>
+        </section>
+
+        <!-- DRIVER -->
+        <section class="bg-white rounded-xl shadow border p-4">
+            <h2 class="font-bold text-slate-700 text-sm mb-2">Driver SDT</h2>
+            <div id="admin-driver-list" class="mb-2 text-xs text-slate-600"></div>
+            <div class="flex gap-2">
+                <input id="admin-driver-inp" placeholder="Tambah Driver" class="input-base">
+                <button onclick="addAdminItem('driver')" class="px-3 bg-indigo-600 text-white rounded">+</button>
+            </div>
+        </section>
+
+        <button onclick="saveAdminMaster()" 
+            class="w-full py-3 bg-green-600 text-white font-bold rounded-xl shadow">
+            Simpan ke Server
+        </button>
+
+    </div>
+</div>
+
+
+<!-- ========================================================= -->
+<!-- ====================== HALAMAN ADMIN ===================== -->
+<!-- ========================================================= -->
+
+<div id="page-admin" class="page">
+
+    <div class="bg-slate-900 text-white px-4 py-4 flex justify-between items-center shadow-md">
+        <button onclick="navTo('home')" class="p-1">
+            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+        </button>
+
+        <h1 class="text-lg font-bold">Master Data</h1>
+
+        <div class="w-6"></div>
+    </div>
+
+    <div id="admin-content" class="p-4 text-sm">
+        <!-- Form admin (SPV / Foreman / Checker / Unit / Driver) akan ditanam di BAGIAN 3 -->
+    </div>
+</div>
+
+<!-- ========================================================= -->
+<!-- ====================== HALAMAN FORM ====================== -->
+<!-- ========================================================= -->
+
+<div id="page-form" class="page">
+    <!-- UI FORM versi A akan ditempel PERSIS di BAGIAN 2 -->
+</div>
+
+<!-- ========================================================= -->
+<!-- ===================== NAVIGATION SCRIPT ================== -->
+<!-- ========================================================= -->
+
+<script>
+function navTo(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById("page-" + page).classList.add('active');
+
+    lucide.createIcons();
+}
+</script>
+
+
+<!-- FORM PAGE HEADER -->
+<div class="bg-slate-900 text-white px-4 py-4 flex justify-between items-center shadow-md">
+    <button onclick="navTo('home')" class="p-1">
+        <i data-lucide='arrow-left' class='w-6 h-6'></i>
+    </button>
+    <h1 class="text-lg font-bold">Input Efektivitas Running</h1>
+    <div class="w-6"></div>
+</div>
+
+<div class="max-w-3xl mx-auto px-4 mt-6 space-y-6">
+
+    <!-- 0. DATA OPERASI -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="bg-slate-50 px-4 py-3 border-b border-slate-100 font-bold text-slate-700 text-sm">
+            0. Data Operasional
+        </div>
+
+        <div class="p-4 space-y-4">
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">
+                        Shift
+                    </label>
+                    <select id="inputShift" class="input-base">
+                        <option value="NIGHT SHIFT">🌙 NIGHT SHIFT</option>
+                        <option value="DAY SHIFT">☀️ DAY SHIFT</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">
+                        Tanggal
+                    </label>
+                    <input type="date" id="inputTanggal" class="input-base">
+                </div>
             </div>
 
-            <div class="mt-3">
-              <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Supervisor</label>
-              <div id="spvContainer" class="flex flex-wrap gap-2 mb-2"></div>
-              <input id="inputSupervisorLainnya" placeholder="+ Manual" class="text-sm w-full border-b py-1 outline-none focus:border-indigo-500">
+            <!-- SUPERVISOR -->
+            <div>
+                <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Supervisor</label>
+                <div id="spvContainer" class="flex flex-wrap gap-2 mb-2"></div>
+                <input id="inputSupervisorLainnya" placeholder="+ Manual"
+                       class="text-sm w-full border-b py-1 outline-none focus:border-indigo-500">
             </div>
 
-            <div class="mt-3">
-              <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Foreman</label>
-              <div id="foremanContainer" class="flex flex-wrap gap-2 mb-2"></div>
-              <input id="inputForemanLainnya" placeholder="+ Manual" class="text-sm w-full border-b py-1 outline-none focus:border-indigo-500">
+            <!-- FOREMAN -->
+            <div>
+                <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Foreman</label>
+                <div id="foremanContainer" class="flex flex-wrap gap-2 mb-2"></div>
+                <input id="inputForemanLainnya" placeholder="+ Manual"
+                       class="text-sm w-full border-b py-1 outline-none focus:border-indigo-500">
             </div>
 
-            <div class="mt-3">
-              <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Checker</label>
-              <div id="checkerContainer" class="flex flex-wrap gap-2 mb-2"></div>
-              <input id="inputCheckerLainnya" placeholder="+ Manual" class="text-sm w-full border-b py-1 outline-none focus:border-indigo-500">
+            <!-- CHECKER -->
+            <div>
+                <label class="text-[10px] font-bold text-slate-400 uppercase block mb-1">Checker</label>
+                <div id="checkerContainer" class="flex flex-wrap gap-2 mb-2"></div>
+                <input id="inputCheckerLainnya" placeholder="+ Manual"
+                       class="text-sm w-full border-b py-1 outline-none focus:border-indigo-500">
             </div>
 
-            <div class="grid grid-cols-2 gap-4 pt-2 mt-4">
-              <div class="bg-blue-50 p-3 rounded border border-blue-100"><label class="text-[10px] font-bold text-blue-600 block">TIPPING ROM</label><input type="number" id="inputTippingRom" placeholder="0" class="w-full bg-transparent text-xl font-black text-blue-900 outline-none"></div>
-              <div class="bg-emerald-50 p-3 rounded border border-emerald-100"><label class="text-[10px] font-bold text-emerald-600 block">TRANSFER ROM</label><input type="number" id="inputTransferRom" placeholder="0" class="w-full bg-transparent text-xl font-black text-emerald-900 outline-none"></div>
-            </div>
-          </div>
+            <!-- TIPPING & TRANSFER -->
+            <div class="grid grid-cols-2 gap-4 pt-2">
+                <div class="bg-blue-50 p-3 rounded border border-blue-100">
+                    <label class="text-[10px] font-bold text-blue-600 block">TIPPING ROM</label>
+                    <input type="number" id="inputTippingRom" placeholder="0"
+                           class="w-full bg-transparent text-xl font-black text-blue-900 outline-none">
+                </div>
 
-          <!-- 1. DURASI CONVEYOR -->
-          <div class="mb-4">
-            <div class="text-sm font-bold text-slate-700">1. Durasi Conveyor</div>
-            <div class="mt-3">
-              <div class="flex bg-slate-200 p-1 rounded-md inline-block">
+                <div class="bg-emerald-50 p-3 rounded border border-emerald-100">
+                    <label class="text-[10px] font-bold text-emerald-600 block">TRANSFER ROM</label>
+                    <input type="number" id="inputTransferRom" placeholder="0"
+                           class="w-full bg-transparent text-xl font-black text-emerald-900 outline-none">
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+<!-- 1. DURASI CONVEYOR -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="bg-slate-50 px-4 py-3 border-b border-slate-100 flex justify-between items-center">
+            <div>
+                <h2 class="font-bold text-slate-700 text-sm">1. Durasi Conveyor</h2>
+                <p class="text-[10px] text-slate-400">Hitung Waktu Indikasi</p>
+            </div>
+
+            <div class="flex bg-slate-200 p-1 rounded-md">
                 <button onclick="switchTab('SD1')" id="tab-SD1" class="tab-btn active">SD1</button>
                 <button onclick="switchTab('SD2')" id="tab-SD2" class="tab-btn">SD2</button>
                 <button onclick="switchTab('SD3')" id="tab-SD3" class="tab-btn">SD3</button>
-              </div>
+            </div>
+        </div>
+
+        <div class="p-4">
+
+            <!-- HEADER GRID -->
+            <div class="grid grid-cols-12 gap-2 text-[10px] font-bold text-slate-400 text-center mb-2">
+                <div class="col-span-1">#</div>
+                <div class="col-span-5">Mulai</div>
+                <div class="col-span-5">Selesai</div>
+                <div class="col-span-1">Del</div>
             </div>
 
-            <div class="mt-3">
-              <div class="grid grid-cols-12 gap-2 text-[10px] font-bold text-slate-400 text-center mb-2"><div class="col-span-1">#</div><div class="col-span-5">Mulai</div><div class="col-span-5">Selesai</div><div class="col-span-1">Del</div></div>
-              <div id="container-SD1" class="space-y-2"></div><div id="container-SD2" class="space-y-2 hidden"></div><div id="container-SD3" class="space-y-2 hidden"></div>
-              <button onclick="addTimeRow(activeSD)" class="mt-3 w-full py-3 border border-dashed border-slate-300 text-slate-500 font-bold text-xs rounded hover:bg-slate-50">+ Tambah Baris</button>
-              <div id="results" class="mt-4 grid grid-cols-3 gap-2 border-t border-slate-100 pt-4">
-                <div class="bg-slate-50 p-2 rounded text-center border border-slate-200"><div class="text-[10px] text-slate-400 font-bold">SD1 Indikasi</div><div id="res-SD1" class="text-sm font-black text-slate-800">0j 0m</div><div id="eff-SD1" class="text-[10px] font-bold text-emerald-600">12j 0m</div></div>
-                <div class="bg-slate-50 p-2 rounded text-center border border-slate-200"><div class="text-[10px] text-slate-400 font-bold">SD2 Indikasi</div><div id="res-SD2" class="text-sm font-black text-slate-800">0j 0m</div><div id="eff-SD2" class="text-[10px] font-bold text-emerald-600">12j 0m</div></div>
-                <div class="bg-slate-50 p-2 rounded text-center border border-slate-200"><div class="text-[10px] text-slate-400 font-bold">SD3 Indikasi</div><div id="res-SD3" class="text-sm font-black text-slate-800">0j 0m</div><div id="eff-SD3" class="text-[10px] font-bold text-emerald-600">12j 0m</div></div>
-              </div>
+            <!-- 3 Container SD -->
+            <div id="container-SD1" class="space-y-2"></div>
+            <div id="container-SD2" class="space-y-2 hidden"></div>
+            <div id="container-SD3" class="space-y-2 hidden"></div>
+
+            <!-- Tambah baris -->
+            <button onclick="addTimeRow(activeSD)" 
+                class="mt-4 w-full py-3 border border-dashed border-slate-300 text-slate-500 font-bold text-xs rounded hover:bg-slate-50">
+                + Tambah Baris
+            </button>
+
+            <!-- HASIL -->
+            <div id="results" class="mt-6 grid grid-cols-3 gap-2 border-t border-slate-100 pt-4">
+
+                <div class="bg-slate-50 p-2 rounded text-center border border-slate-200">
+                    <div class="text-[10px] text-slate-400 font-bold">SD1 Indikasi</div>
+                    <div id="res-SD1" class="text-sm font-black text-slate-800">0j 0m</div>
+                    <div id="eff-SD1" class="text-[10px] font-bold text-emerald-600">12j 0m</div>
+                </div>
+
+                <div class="bg-slate-50 p-2 rounded text-center border border-slate-200">
+                    <div class="text-[10px] text-slate-400 font-bold">SD2 Indikasi</div>
+                    <div id="res-SD2" class="text-sm font-black text-slate-800">0j 0m</div>
+                    <div id="eff-SD2" class="text-[10px] font-bold text-emerald-600">12j 0m</div>
+                </div>
+
+                <div class="bg-slate-50 p-2 rounded text-center border border-slate-200">
+                    <div class="text-[10px] text-slate-400 font-bold">SD3 Indikasi</div>
+                    <div id="res-SD3" class="text-sm font-black text-slate-800">0j 0m</div>
+                    <div id="eff-SD3" class="text-[10px] font-bold text-emerald-600">12j 0m</div>
+                </div>
+
             </div>
-          </div>
+        </div>
+    </section>
 
-          <!-- 2. UNIT RUNNING -->
-          <div class="mb-4">
-            <div class="text-sm font-bold text-slate-700">2. Perhitungan Unit Running</div>
-            <div class="mt-3 space-y-4">
-              <!-- MHA -->
-              <div class="border border-slate-200 rounded-lg overflow-hidden text-center text-xs p-3">
-                <div class="grid grid-cols-12 bg-slate-50 font-bold text-slate-400 py-2 border-b border-slate-200"><div class="col-span-2">SHIFT</div><div class="col-span-4">UNIT</div><div class="col-span-4">TRIP</div><div class="col-span-2">HASIL</div></div>
-                <div class="grid grid-cols-12 py-1 items-center border-b border-slate-100"><div class="col-span-2">☀️</div><div class="col-span-4 px-1"><input type="number" id="mha-run-siang" class="table-input" placeholder="0" oninput="calcUnit('mha')"></div><div class="col-span-4 px-1"><input type="number" id="mha-trip-siang" class="table-input" placeholder="0" oninput="calcUnit('mha')"></div><div class="col-span-2 font-black" id="mha-res-siang">0</div></div>
-                <div class="grid grid-cols-12 py-1 items-center bg-slate-50/50"><div class="col-span-2">🌙</div><div class="col-span-4 px-1"><input type="number" id="mha-run-malam" class="table-input" placeholder="0" oninput="calcUnit('mha')"></div><div class="col-span-4 px-1"><input type="number" id="mha-trip-malam" class="table-input" placeholder="0" oninput="calcUnit('mha')"></div><div class="col-span-2 font-black" id="mha-res-malam">0</div></div>
-              </div>
-              <!-- KARUNIA -->
-              <div class="border border-slate-200 rounded-lg overflow-hidden text-center text-xs p-3">
-                <div class="grid grid-cols-12 bg-slate-50 font-bold text-slate-400 py-2 border-b border-slate-200"><div class="col-span-2">SHIFT</div><div class="col-span-4">UNIT</div><div class="col-span-4">TRIP</div><div class="col-span-2">HASIL</div></div>
-                <div class="grid grid-cols-12 py-1 items-center border-b border-slate-100"><div class="col-span-2">☀️</div><div class="col-span-4 px-1"><input type="number" id="kai-run-siang" class="table-input" placeholder="0" oninput="calcUnit('kai')"></div><div class="col-span-4 px-1"><input type="number" id="kai-trip-siang" class="table-input" placeholder="0" oninput="calcUnit('kai')"></div><div class="col-span-2 font-black" id="kai-res-siang">0</div></div>
-                <div class="grid grid-cols-12 py-1 items-center bg-slate-50/50"><div class="col-span-2">🌙</div><div class="col-span-4 px-1"><input type="number" id="kai-run-malam" class="table-input" placeholder="0" oninput="calcUnit('kai')"></div><div class="col-span-4 px-1"><input type="number" id="kai-trip-malam" class="table-input" placeholder="0" oninput="calcUnit('kai')"></div><div class="col-span-2 font-black" id="kai-res-malam">0</div></div>
-              </div>
-              <!-- BUMA -->
-              <div class="border border-slate-200 rounded-lg overflow-hidden text-center text-xs p-3">
-                <div class="grid grid-cols-12 bg-slate-50 font-bold text-slate-400 py-2 border-b border-slate-200"><div class="col-span-2">SHIFT</div><div class="col-span-4">UNIT</div><div class="col-span-4">TRIP</div><div class="col-span-2">HASIL</div></div>
-                <div class="grid grid-cols-12 py-1 items-center border-b border-slate-100"><div class="col-span-2">☀️</div><div class="col-span-4 px-1"><input type="number" id="buma-run-siang" class="table-input" placeholder="0" oninput="calcUnit('buma')"></div><div class="col-span-4 px-1"><input type="number" id="buma-trip-siang" class="table-input" placeholder="0" oninput="calcUnit('buma')"></div><div class="col-span-2 font-black" id="buma-res-siang">0</div></div>
-                <div class="grid grid-cols-12 py-1 items-center bg-slate-50/50"><div class="col-span-2">🌙</div><div class="col-span-4 px-1"><input type="number" id="buma-run-malam" class="table-input" placeholder="0" oninput="calcUnit('buma')"></div><div class="col-span-4 px-1"><input type="number" id="buma-trip-malam" class="table-input" placeholder="0" oninput="calcUnit('buma')"></div><div class="col-span-2 font-black" id="buma-res-malam">0</div></div>
-              </div>
+<!-- 2. UNIT RUNNING -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="bg-slate-50 px-4 py-3 border-b border-slate-100 font-bold text-slate-700 text-sm">
+            2. Perhitungan Unit Running
+        </div>
 
-              <div class="bg-slate-100 p-3 rounded flex justify-between items-center text-sm"><span class="font-bold text-slate-500">Total Hauling</span><span id="grand-total" class="font-black text-indigo-700 text-lg">0 Trip</span></div>
+        <div class="p-4 space-y-6">
+
+            <!-- MHA -->
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="w-2 h-2 rounded-full bg-orange-500"></div>
+                    <span class="text-xs font-bold text-slate-700">MHA</span>
+                </div>
+
+                <div class="border border-slate-200 rounded-lg overflow-hidden text-center text-xs">
+
+                    <!-- Header -->
+                    <div class="grid grid-cols-12 bg-slate-50 font-bold text-slate-400 py-2 border-b border-slate-200">
+                        <div class="col-span-2">SHIFT</div>
+                        <div class="col-span-4">UNIT</div>
+                        <div class="col-span-4">TRIP</div>
+                        <div class="col-span-2">HASIL</div>
+                    </div>
+
+                    <!-- Siang -->
+                    <div class="grid grid-cols-12 py-1 items-center border-b border-slate-100">
+                        <div class="col-span-2">☀️</div>
+                        <div class="col-span-4 px-1">
+                            <input type="number" id="mha-run-siang" class="table-input"
+                                   placeholder="0" oninput="calcUnit('mha')">
+                        </div>
+                        <div class="col-span-4 px-1">
+                            <input type="number" id="mha-trip-siang" class="table-input"
+                                   placeholder="0" oninput="calcUnit('mha')">
+                        </div>
+                        <div class="col-span-2 font-black" id="mha-res-siang">0</div>
+                    </div>
+
+                    <!-- Malam -->
+                    <div class="grid grid-cols-12 py-1 items-center bg-slate-50/50">
+                        <div class="col-span-2">🌙</div>
+                        <div class="col-span-4 px-1">
+                            <input type="number" id="mha-run-malam" class="table-input"
+                                   placeholder="0" oninput="calcUnit('mha')">
+                        </div>
+                        <div class="col-span-4 px-1">
+                            <input type="number" id="mha-trip-malam" class="table-input"
+                                   placeholder="0" oninput="calcUnit('mha')">
+                        </div>
+                        <div class="col-span-2 font-black" id="mha-res-malam">0</div>
+                    </div>
+
+                </div>
             </div>
-          </div>
 
-          <!-- 3. UNIT SDT RUNNING -->
-          <div class="mb-4">
-            <div class="text-sm font-bold text-slate-700">3. Unit SDT Running <button class="text-[10px] text-blue-600 underline ml-2" onclick="toggleConfig()">Config</button></div>
+            <!-- KARUNIA -->
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+                    <span class="text-xs font-bold text-slate-700">KARUNIA</span>
+                </div>
+
+                <div class="border border-slate-200 rounded-lg overflow-hidden text-center text-xs">
+
+                    <!-- Header -->
+                    <div class="grid grid-cols-12 bg-slate-50 font-bold text-slate-400 py-2 border-b border-slate-200">
+                        <div class="col-span-2">SHIFT</div>
+                        <div class="col-span-4">UNIT</div>
+                        <div class="col-span-4">TRIP</div>
+                        <div class="col-span-2">HASIL</div>
+                    </div>
+
+                    <!-- Siang -->
+                    <div class="grid grid-cols-12 py-1 items-center border-b border-slate-100">
+                        <div class="col-span-2">☀️</div>
+                        <div class="col-span-4 px-1">
+                            <input type="number" id="kai-run-siang" class="table-input"
+                                   placeholder="0" oninput="calcUnit('kai')">
+                        </div>
+                        <div class="col-span-4 px-1">
+                            <input type="number" id="kai-trip-siang" class="table-input"
+                                   placeholder="0" oninput="calcUnit('kai')">
+                        </div>
+                        <div class="col-span-2 font-black" id="kai-res-siang">0</div>
+                    </div>
+
+                    <!-- Malam -->
+                    <div class="grid grid-cols-12 py-1 items-center bg-slate-50/50">
+                        <div class="col-span-2">🌙</div>
+                        <div class="col-span-4 px-1">
+                            <input type="number" id="kai-run-malam" class="table-input"
+                                   placeholder="0" oninput="calcUnit('kai')">
+                        </div>
+                        <div class="col-span-4 px-1">
+                            <input type="number" id="kai-trip-malam" class="table-input"
+                                   placeholder="0" oninput="calcUnit('kai')">
+                        </div>
+                        <div class="col-span-2 font-black" id="kai-res-malam">0</div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- BUMA -->
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="w-2 h-2 rounded-full bg-yellow-500"></div>
+                    <span class="text-xs font-bold text-slate-700">BUMA</span>
+                </div>
+
+                <div class="border border-slate-200 rounded-lg overflow-hidden text-center text-xs">
+
+                    <!-- Header -->
+                    <div class="grid grid-cols-12 bg-slate-50 font-bold text-slate-400 py-2 border-b border-slate-200">
+                        <div class="col-span-2">SHIFT</div>
+                        <div class="col-span-4">UNIT</div>
+                        <div class="col-span-4">TRIP</div>
+                        <div class="col-span-2">HASIL</div>
+                    </div>
+
+                    <!-- Siang -->
+                    <div class="grid grid-cols-12 py-1 items-center border-b border-slate-100">
+                        <div class="col-span-2">☀️</div>
+                        <div class="col-span-4 px-1">
+                            <input type="number" id="buma-run-siang" class="table-input"
+                                   placeholder="0" oninput="calcUnit('buma')">
+                        </div>
+                        <div class="col-span-4 px-1">
+                            <input type="number" id="buma-trip-siang" class="table-input"
+                                   placeholder="0" oninput="calcUnit('buma')">
+                        </div>
+                        <div class="col-span-2 font-black" id="buma-res-siang">0</div>
+                    </div>
+
+                    <!-- Malam -->
+                    <div class="grid grid-cols-12 py-1 items-center bg-slate-50/50">
+                        <div class="col-span-2">🌙</div>
+                        <div class="col-span-4 px-1">
+                            <input type="number" id="buma-run-malam" class="table-input"
+                                   placeholder="0" oninput="calcUnit('buma')">
+                        </div>
+                        <div class="col-span-4 px-1">
+                            <input type="number" id="buma-trip-malam" class="table-input"
+                                   placeholder="0" oninput="calcUnit('buma')">
+                        </div>
+                        <div class="col-span-2 font-black" id="buma-res-malam">0</div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- TOTAL HAULING -->
+            <div class="bg-slate-100 p-3 rounded flex justify-between items-center text-sm">
+                <span class="font-bold text-slate-500">Total Hauling</span>
+                <span id="grand-total" class="font-black text-indigo-700 text-lg">0</span>
+            </div>
+
+        </div>
+    </section>
+
+
+<!-- 3. UNIT SDT RUNNING -->
+    <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="bg-slate-50 px-4 py-3 border-b border-slate-100 flex justify-between items-center">
+            <h2 class="font-bold text-slate-700 text-sm">3. Unit SDT Running</h2>
+            <button onclick="toggleConfig()" class="text-[10px] text-blue-600 underline font-bold">Config</button>
+        </div>
+
+        <div class="p-4">
+
+            <!-- CONFIG PANEL -->
             <div id="configPanel" class="hidden bg-blue-50 p-3 rounded-lg border border-blue-100 text-xs mb-4">
-              <div class="grid grid-cols-2 gap-2">
-                <div class="flex gap-1"><input id="newUnit" placeholder="Unit Baru" class="input-base py-1" style="padding:8px;"><button onclick="addMaster('unit')" class="bg-blue-600 text-white px-2 rounded">+</button></div>
-                <div class="flex gap-1"><input id="newDriver" placeholder="Driver Baru" class="input-base py-1" style="padding:8px;"><button onclick="addMaster('driver')" class="bg-emerald-600 text-white px-2 rounded">+</button></div>
-              </div>
+                <div class="grid grid-cols-2 gap-2">
+
+                    <div class="flex gap-1">
+                        <input id="newUnit" placeholder="Unit Baru" class="input-base py-1">
+                        <button onclick="addMaster('unit')" class="bg-blue-600 text-white px-2 rounded">+</button>
+                    </div>
+
+                    <div class="flex gap-1">
+                        <input id="newDriver" placeholder="Driver Baru" class="input-base py-1">
+                        <button onclick="addMaster('driver')" class="bg-emerald-600 text-white px-2 rounded">+</button>
+                    </div>
+
+                </div>
             </div>
 
-            <div class="mb-4"><div id="unitBtnContainer" class="flex flex-wrap gap-2"></div></div>
+            <!-- UNIT BUTTONS -->
+            <div class="mb-4">
+                <div id="unitBtnContainer" class="flex flex-wrap gap-2"></div>
+            </div>
+
+            <!-- SDT LIST -->
             <div id="sdtList" class="space-y-3"></div>
-            <div id="emptyMsg" class="text-center py-6 text-slate-300 text-xs italic border border-dashed rounded mt-2">Belum ada data. Klik tombol unit di atas.</div>
-          </div>
 
-          <!-- Buttons (KIRIM di dalam form) -->
-          <div class="grid grid-cols-2 gap-3 mt-4">
-            <button onclick="copyReport(false)" class="bg-white border border-purple-200 text-purple-700 font-bold py-3 rounded-xl shadow-sm hover:bg-purple-50 text-xs">Salin SIANG</button>
-            <button onclick="copyReport(true)" class="bg-white border border-indigo-200 text-indigo-700 font-bold py-3 rounded-xl shadow-sm hover:bg-indigo-50 text-xs">Salin MALAM</button>
-          </div>
+            <div id="emptyMsg"
+                 class="text-center py-6 text-slate-300 text-xs italic border border-dashed rounded mt-2">
+                 Belum ada data. Klik tombol unit di atas.
+            </div>
+
         </div>
-      </div>
+    </section>
+
+    <!-- BUTTON SALIN -->
+    <div class="grid grid-cols-2 gap-3 mt-6 mb-16">
+        <button onclick="copyReport(false)"
+            class="bg-white border border-purple-200 text-purple-700 font-bold py-3 rounded-xl shadow-sm hover:bg-purple-50 text-xs">
+            Salin SIANG
+        </button>
+
+        <button onclick="copyReport(true)"
+            class="bg-white border border-indigo-200 text-indigo-700 font-bold py-3 rounded-xl shadow-sm hover:bg-indigo-50 text-xs">
+            Salin MALAM
+        </button>
     </div>
 
-    <!-- ADMIN PAGE (inline) -->
-    <div id="page-admin" class="hidden">
-      <div class="card">
-        <div class="card-head" style="display:flex; justify-content:space-between; align-items:center;">
-          <div style="display:flex; align-items:center;"><div class="back-small" onclick="showPage('home')">←</div><div><strong>Admin - Tambah Data Master</strong><div class="muted small">Hanya admin yang bisa menambah</div></div></div>
-          <div><button id="btnLogout" class="bg-red-500 text-white px-3 py-1 rounded-md text-sm hidden">Logout</button></div>
-        </div>
-        <div class="card-body">
-          <div style="display:flex; gap:8px; align-items:center;">
-            <select id="adminType" class="text-sm" style="padding:8px; border-radius:8px;">
-              <option value="spv">Supervisor</option>
-              <option value="frm">Foreman</option>
-              <option value="chk">Checker</option>
-              <option value="unit">Unit</option>
-              <option value="driver">Driver</option>
-            </select>
-            <input id="adminInput" placeholder="Masukkan nama/kode..." style="padding:8px; border-radius:8px;">
-            <button onclick="handleAdminAdd()" class="bg-indigo-600 text-white px-3 py-2 rounded-md font-bold">Tambah</button>
-            <button onclick="adminRefresh()" class="bg-white border border-slate-200 px-3 py-2 rounded-md font-bold">Refresh</button>
-          </div>
+</div> <!-- penutup max-w-3xl -->
+</div> <!-- penutup PAGE FORM -->
 
-          <div class="mt-4 text-sm">
-            <div><strong>Supervisor:</strong> <span id="listSpvSmall">-</span></div>
-            <div><strong>Foreman:</strong> <span id="listFrmSmall">-</span></div>
-            <div><strong>Checker:</strong> <span id="listChkSmall">-</span></div>
-            <div><strong>Unit:</strong> <span id="listUnitSmall">-</span></div>
-            <div><strong>Driver:</strong> <span id="listDriverSmall">-</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
 
-  </div>
-
-  <!-- FAB untuk buka form -->
-  <button class="fab" id="fabAdd">+</button>
-
-  <div id="toast" class="toast">Tersimpan</div>
+<!-- TOAST -->
+<div id="toast"
+     class="fixed bottom-5 right-5 bg-slate-800 text-white px-4 py-3 rounded shadow-xl text-xs hidden 
+            transition-all duration-300 transform translate-y-10">
+    Teks berhasil disalin!
+</div>
 
 <script>
-/* =========================
-   Config & State
-   ========================= */
-const firebaseConfig = {
-  apiKey: "AIzaSyDGPkoewPcjffZ8ORwB3rrVAKiYtRYzuEk",
-  authDomain: "retase-20ec2.firebaseapp.com",
-  projectId: "retase-20ec2",
-  storageBucket: "retase-20ec2.firebasestorage.app",
-  messagingSenderId: "414104675676",
-  appId: "1:414104675676:web:95f0012dadfb1743ff8d99",
-  measurementId: "G-64RN0GNMPW"
-};
+// =============================================================
+//  BAGIAN 3A — FIRESTORE MASTER DATA + INISIALISASI FORM
+// =============================================================
 
-let useFirestore = false;
-let db = null;
+// Global Holder Master Data
+let SPV = [];
+let FRM = [];
+let CHK = [];
+let masterUnits = [];
+let masterDrivers = [];
 
-// master defaults
-let MASTER = {
-  spv: ['Ihsan R','Dicky F','Sopian'],
-  frm: ['Gunawan TC','Hardiansyah','Lewi S','Elimelek J','Andry K','Yulius R'],
-  chk: ['Indra R','Jemmie P','Ikram','Fahri T','Indra A','Andhy S','Agus','Angga','Henderi A','L Fauzan N','Nanda P'],
-  units: ["01-F","02-F","03-F","3A-F","05-F","08-P","09-P","10-P","25-P"],
-  drivers: ["Jeksen","Saipul","Julio","Ardianur","Suryadi","Agung","Faturahman"]
-};
-
-// conveyor & form state (from original)
+// Conveyor Data Holder (seperti script asli)
 let activeSD = 'SD1';
-let conveyorData = { SD1:[], SD2:[], SD3:[] };
+let conveyorData = { SD1: [], SD2: [], SD3: [] };
+
+// SDT Data Holder
 let sdtData = [];
-let masterUnits = MASTER.units.slice();
-let masterDrivers = MASTER.drivers.slice();
 
-/* =========================
-   UI helpers
-   ========================= */
-function showToast(t, ms=1800){
-  const el = document.getElementById('toast'); el.innerText = t; el.style.display='block';
-  setTimeout(()=> el.style.display='none', ms);
-}
-function showPage(name){
-  document.getElementById('page-home').classList.toggle('hidden', name!=='home');
-  document.getElementById('page-form').classList.toggle('hidden', name!=='form');
-  document.getElementById('page-admin').classList.toggle('hidden', name!=='admin');
-  // ensure history visible when home
-  if(name==='home') loadHistory();
-}
 
-/* =========================
-   Firebase v8 loader (robust)
-   ========================= */
-function loadFirebaseV8(timeoutMs=4500){
-  return new Promise((resolve)=>{
-    let inited = false;
-    function tryInit(){
-      try{
-        if(window.firebase && firebase.firestore){
-          if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-          db = firebase.firestore();
-          useFirestore = true;
-          inited = true;
-          console.info('Firebase v8 loaded, Firestore ready');
-          resolve(true);
-          return;
-        }
-      } catch(e){ console.warn('init err', e); }
+// =============================================================
+//  LOAD MASTER DATA DARI FIRESTORE
+// =============================================================
+async function loadMasterData() {
+    const db = window._db;
+    const ref = window._doc(db, "settings", "lists");
+    const snap = await window._get(ref);
+
+    if (!snap.exists()) {
+        console.warn("Master belum dibuat di Firestore.");
+        return;
     }
 
-    const s1 = document.createElement('script'); s1.src = 'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js'; s1.onload = tryInit; s1.onerror = ()=>console.warn('load firebase-app v8 failed'); document.head.appendChild(s1);
-    const s2 = document.createElement('script'); s2.src = 'https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js'; s2.onload = tryInit; s2.onerror = ()=>console.warn('load firebase-firestore v8 failed'); document.head.appendChild(s2);
+    const data = snap.data();
 
-    setTimeout(()=>{ if(!inited){ console.warn('Firebase load timeout -> offline'); useFirestore=false; resolve(false); } }, timeoutMs);
-    setTimeout(tryInit, 700);
-  });
+    // Ambil masing-masing master list
+    SPV = data.spv || [];
+    FRM = data.frm || [];
+    CHK = data.chk || [];
+    masterUnits = data.unit || [];
+    masterDrivers = data.driver || [];
+
+    console.log("MASTER LOADED:", data);
+
+    // Render chips ulang
+    initChips('spvContainer', SPV);
+    initChips('foremanContainer', FRM);
+    initChips('checkerContainer', CHK);
+
+    // Render Unit SDT
+    renderUnitButtons();
+
+    lucide.createIcons();
 }
 
-/* =========================
-   Initialize UI elements
-   ========================= */
-function initUI(){
-  // navbar buttons
-  document.getElementById('btnAdmin').onclick = ()=> openAdmin(); 
-  document.getElementById('btnDown').onclick = ()=> window.scrollTo(0, document.body.scrollHeight);
-  document.getElementById('openAdminInline').onclick = ()=> openAdmin();
-  document.getElementById('fabAdd').onclick = ()=> openForm();
-  document.getElementById('btnLogout').onclick = ()=> { localStorage.removeItem('isAdmin'); document.getElementById('btnLogout').classList.add('hidden'); showToast('Logout'); };
 
-  // default date
-  const dt = new Date().toISOString().split('T')[0];
-  document.getElementById('inputTanggal').value = dt;
+// =============================================================
+//  SIMPAN MASTER DATA (Dipanggil dari Halaman Admin)
+// =============================================================
+async function saveMasterToFirestore(masterData) {
+    const db = window._db;
+    const ref = window._doc(db, "settings", "lists");
 
-  // init some rows
-  addTimeRow('SD1'); addTimeRow('SD1'); addTimeRow('SD2'); addTimeRow('SD3');
+    await window._set(ref, {
+        ...masterData,
+        _adminKey: "mpadmin"
+    }, { merge: true });
 
-  // render masters
-  renderMaster();
-  renderUnitButtons();
-  renderSdtList();
-  loadHistory(); // load from storage initially
+    alert("Master berhasil disimpan ke server!");
 }
 
-/* =========================
-   MASTER render & admin
-   ========================= */
-function renderMaster(){
-  // chips for form
-  const idMap = [['spvContainer','spv'],['foremanContainer','frm'],['checkerContainer','chk']];
-  idMap.forEach(pair=>{
-    const wrap = document.getElementById(pair[0]);
-    wrap.innerHTML = MASTER[pair[1]].map(n=>`<label class="chip-div inline-block mr-2 mb-1">${n}</label>`).join('');
-    // make clickable toggles
-    Array.from(wrap.children).forEach(el=>{
-      el.onclick = ()=> el.classList.toggle('active');
-    });
-  });
-  // preview small
-  document.getElementById('pSpv').innerText = MASTER.spv.join(', ');
-  document.getElementById('pFrm').innerText = MASTER.frm.join(', ');
-  document.getElementById('pChk').innerText = MASTER.chk.join(', ');
-  document.getElementById('pUnit').innerText = MASTER.units.join(', ');
-  document.getElementById('pDriver').innerText = MASTER.drivers.join(', ');
-  // admin lists
-  document.getElementById('listSpvSmall').innerText = MASTER.spv.join(', ');
-  document.getElementById('listFrmSmall').innerText = MASTER.frm.join(', ');
-  document.getElementById('listChkSmall').innerText = MASTER.chk.join(', ');
-  document.getElementById('listUnitSmall').innerText = MASTER.units.join(', ');
-  document.getElementById('listDriverSmall').innerText = MASTER.drivers.join(', ');
+
+// =============================================================
+//  INISIALISASI FORM SAAT PAGE-FORM DIBUKA
+// =============================================================
+function initFormUI() {
+    document.getElementById('inputTanggal').value = new Date().toISOString().split('T')[0];
+
+    // Buat minimal 1 row per SD agar tidak kosong
+    addTimeRow('SD1');
+    addTimeRow('SD1');
+    addTimeRow('SD2');
+    addTimeRow('SD3');
+
+    lucide.createIcons();
 }
 
-// admin add
-function handleAdminAdd(){
-  if(!isAdmin()){ promptAdmin(); if(!isAdmin()) return; }
-  const type = document.getElementById('adminType').value;
-  const val = document.getElementById('adminInput').value.trim();
-  if(!val) return alert('Masukkan nilai');
-  if(type==='spv') MASTER.spv.push(val);
-  if(type==='frm') MASTER.frm.push(val);
-  if(type==='chk') MASTER.chk.push(val);
-  if(type==='unit') MASTER.units.push(val.toUpperCase());
-  if(type==='driver') MASTER.drivers.push(val);
-  saveMaster();
-  document.getElementById('adminInput').value='';
-  renderMaster();
-  renderUnitButtons();
-  showToast('Master ditambahkan');
+
+// =============================================================
+//  FUNGSI UTAMA UNTUK MEN-RENDER CHIPS SUPERVISOR/FOREMAN/CHECKER
+// =============================================================
+function initChips(containerId, list) {
+    const cont = document.getElementById(containerId);
+    if (!cont) return;
+
+    cont.innerHTML = list.map(n => `
+        <label class="chip-label inline-block mr-2 mb-1">
+            <input type="checkbox" value="${n}" class="hidden">
+            <div class="chip-div">${n}</div>
+        </label>
+    `).join('');
 }
 
-function adminRefresh(){
-  if(useFirestore && db){
-    db.collection('settings').doc('lists').get().then(doc=>{
-      if(doc.exists){ MASTER = Object.assign(MASTER, doc.data()); localStorage.setItem('master_local', JSON.stringify(MASTER)); renderMaster(); renderUnitButtons(); showToast('Master diambil dari server'); }
-      else showToast('Belum ada master di server');
-    }).catch(e=>{ console.error(e); showToast('Gagal ambil dari server'); });
-  } else {
-    const local = JSON.parse(localStorage.getItem('master_local')||'null');
-    if(local){ MASTER = local; renderMaster(); renderUnitButtons(); showToast('Master dari storage lokal'); }
-    else showToast('Tidak ada data lokal');
-  }
+
+// =============================================================
+//  FUNGSI RENDER UNIT BUTTONS (SDT)
+// =============================================================
+function renderUnitButtons() {
+    const wrap = document.getElementById("unitBtnContainer");
+    if (!wrap) return;
+
+    wrap.innerHTML = masterUnits.map(u => `
+        <button onclick="addSdt('${u}')"
+            class="bg-white border border-slate-300 text-xs font-bold text-slate-600 px-3 py-1 rounded shadow-sm 
+                   hover:bg-indigo-50 hover:text-indigo-600 transition">
+            ${u}
+        </button>
+    `).join('');
 }
-
-function saveMaster(){
-  localStorage.setItem('master_local', JSON.stringify(MASTER));
-  if(useFirestore && db){
-    db.collection('settings').doc('lists').set(MASTER, {merge:true}).then(()=> console.log('master saved remote')).catch(e=>console.warn('save master remote err', e));
-  }
-}
-
-/* =========================
-   Simple admin auth (client-side)
-   ========================= */
-function isAdmin(){ return localStorage.getItem('isAdmin')==='1'; }
-function promptAdmin(){
-  const u = prompt('User:'); const p = prompt('Password:');
-  if(u==='admin' && p==='mpadmin'){ localStorage.setItem('isAdmin','1'); document.getElementById('btnLogout').classList.remove('hidden'); showToast('Login admin sukses'); return true; }
-  alert('Login gagal'); return false;
-}
-function openAdmin(){
-  if(!isAdmin()){
-    if(!promptAdmin()) return;
-  }
-  showPage('admin');
-  document.getElementById('btnLogout').classList.remove('hidden');
-}
-
-/* =========================
-   Conveyor rows & calc (from original)
-   ========================= */
-function switchTab(sd){
-  activeSD = sd;
-  ['SD1','SD2','SD3'].forEach(n=>{
-    document.getElementById(`tab-${n}`).className = `tab-btn ${n===sd?'active':''}`;
-    document.getElementById(`container-${n}`).className = `space-y-2 ${n===sd?'':'hidden'}`;
-  });
-}
-
-function addTimeRow(sd){
-  const idx = conveyorData[sd].length;
-  conveyorData[sd].push({ sh:'', sm:'', fh:'', fm:'' });
-  const div = document.createElement('div');
-  div.id = `row-${sd}-${idx}`;
-  div.className = "grid grid-cols-12 gap-2 items-center bg-white p-2 rounded border border-slate-100 shadow-sm";
-  div.innerHTML = `
-    <div class="col-span-1 text-center font-bold text-slate-300 text-xs">${idx+1}</div>
-    <div class="col-span-5 time-box"><input type="tel" maxlength="2" placeholder="HH" class="time-digit" oninput="updTime('${sd}',${idx},'sh',this)">:<input type="tel" maxlength="2" placeholder="MM" class="time-digit" oninput="updTime('${sd}',${idx},'sm',this)"></div>
-    <div class="col-span-5 time-box"><input type="tel" maxlength="2" placeholder="HH" class="time-digit" oninput="updTime('${sd}',${idx},'fh',this)">:<input type="tel" maxlength="2" placeholder="MM" class="time-digit" oninput="updTime('${sd}',${idx},'fm',this)"></div>
-    <div class="col-span-1 text-center"><button onclick="delTimeRow('${sd}',${idx})" class="text-slate-300 hover:text-red-500 font-bold">×</button></div>
-  `;
-  document.getElementById(`container-${sd}`).appendChild(div);
-}
-
-function updTime(sd, idx, f, el){
-  let v = el.value.replace(/\D/g,''); if(v.length>2) v=v.slice(0,2);
-  if(v>23 && (f=='sh'||f=='fh')) v='23'; if(v>59 && (f=='sm'||f=='fm')) v='59';
-  el.value = v; conveyorData[sd][idx][f] = v;
-  calcConv(sd);
-  if(v.length==2){ let n = el.nextElementSibling; if(n && n.tagName=='INPUT') n.focus(); }
-}
-
-function delTimeRow(sd, idx){
-  const el = document.getElementById(`row-${sd}-${idx}`);
-  if(el) el.style.display='none';
-  conveyorData[sd][idx] = { sh:'', sm:'', fh:'', fm:'' };
-  calcConv(sd);
-}
-
-function calcConv(sd){
-  let tot=0;
-  conveyorData[sd].forEach(d=>{
-    if(d.sh!=='' && d.sm!=='' && d.fh!=='' && d.fm!==''){
-      let s = parseInt(d.sh)*60 + parseInt(d.sm), f = parseInt(d.fh)*60 + parseInt(d.fm);
-      if(f<s) f+=1440; tot += (f-s);
-    }
-  });
-  const th = Math.floor(tot/60), tm = tot%60;
-  document.getElementById(`res-${sd}`).innerText = `${th}j ${tm}m`;
-  let rem = (12*60) - tot;
-  const rh = Math.floor(Math.abs(rem)/60), rm = Math.abs(rem)%60;
-  const el = document.getElementById(`eff-${sd}`);
-  if(tot===0){ el.innerText='-'; el.className="text-[10px] font-bold text-slate-300"; el.dataset.copy='-'; }
-  else if(rem>=0){ el.innerText=`${rh}j ${rm}m`; el.className="text-[10px] font-bold text-emerald-600"; el.dataset.copy=`${rh} Jam ${String(rm).padStart(2,'0')} Menit`; }
-  else { el.innerText=`${rh}j ${rm}m (Over)`; el.className="text-[10px] font-bold text-red-600"; el.dataset.copy=`${rh} Jam ${String(rm).padStart(2,'0')} Menit (Kelebihan Durasi)`; }
-}
-
-/* =========================
-   Unit running calc (original logic)
-   ========================= */
-function calcUnit(id){
-  const val = (s)=> parseFloat(document.getElementById(s).value)||0;
-  const rs = val(`${id}-run-siang`), ts = val(`${id}-trip-siang`), rm = val(`${id}-run-malam`), tm = val(`${id}-trip-malam`);
-  document.getElementById(`${id}-res-siang`).innerText = (ts - rs);
-  document.getElementById(`${id}-res-malam`).innerText = ((tm - ts) - rm);
-  let tot = 0; ['mha','kai','buma'].forEach(k => tot += (val(`${k}-trip-malam`) - val(`${k}-trip-siang`)));
-  document.getElementById('grand-total').innerText = tot + " Trip";
-}
-
-/* =========================
-   SDT running functions
-   ========================= */
-function toggleConfig(){ document.getElementById('configPanel').classList.toggle('hidden'); }
-
-function addMaster(t){
-  const el = document.getElementById(t==='unit'?'newUnit':'newDriver');
-  const v = el.value.trim();
-  if(!v) return;
-  if(t==='unit'){ MASTER.units.push(v.toUpperCase()); }
-  else { MASTER.drivers.push(v); }
-  saveMaster();
-  el.value='';
-  renderMaster();
-  renderUnitButtons();
-}
-
-function renderUnitButtons(){
-  const c = document.getElementById('unitBtnContainer');
-  masterUnits = MASTER.units.slice();
-  masterDrivers = MASTER.drivers.slice();
-  c.innerHTML = MASTER.units.map(u => `<button onclick="addSdt('${u}')" class="bg-white border border-slate-300 text-xs font-bold text-slate-600 px-3 py-1 rounded shadow-sm hover:bg-indigo-50 hover:text-indigo-600 transition">${u}</button>`).join('');
-}
-
-function addSdt(u){
-  sdtData.push({ unit:u, driver:'', trip:'', ket:'' });
-  renderSdtList();
-  setTimeout(()=> document.getElementById('sdtList').lastElementChild?.scrollIntoView({behavior:'smooth', block:'center'}), 100);
-}
-
-function delSdt(i){
-  sdtData.splice(i,1);
-  renderSdtList();
-}
-
-function updSdt(i,f,v){ sdtData[i][f] = v; }
-
-function renderSdtList(){
-  const c = document.getElementById('sdtList');
-  const m = document.getElementById('emptyMsg');
-  if(sdtData.length === 0){ c.innerHTML=''; m.style.display='block'; return; }
-  m.style.display='none';
-  const drvOpts = `<option value="">Driver...</option>` + MASTER.drivers.map(d=>`<option value="${d}">${d}</option>`).join('');
-  c.innerHTML = sdtData.map((d,i)=>`
-    <div class="bg-white p-2 rounded-lg border border-slate-200 shadow-sm flex flex-col gap-2 relative">
-      <div class="flex justify-between items-center border-b border-slate-50 pb-1">
-        <span class="font-bold text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">${d.unit}</span>
-        <button onclick="delSdt(${i})" class="text-red-400 hover:text-red-600 transition p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-      </div>
-      <div class="grid grid-cols-12 gap-2 text-xs">
-        <div class="col-span-5"><select onchange="updSdt(${i},'driver',this.value)" class="w-full border rounded p-1 bg-white outline-none">${drvOpts.replace(`value="${d.driver}"`,`value="${d.driver}" selected`)}</select></div>
-        <div class="col-span-3 relative"><input type="number" value="${d.trip}" placeholder="0" oninput="updSdt(${i},'trip',this.value)" class="w-full border rounded p-1 text-center font-bold outline-none"><span class="absolute right-1 top-1.5 text-[8px] text-slate-400 hidden sm:block">Trp</span></div>
-        <div class="col-span-4"><input type="text" value="${d.ket}" placeholder="Ket..." oninput="updSdt(${i},'ket',this.value)" class="w-full border rounded p-1 text-red-500 italic outline-none"></div>
-      </div>
-    </div>
-  `).join('');
-  lucide.createIcons();
-}
-
-/* =========================
-   COPY & SAVE report (original logic adapted)
-   ========================= */
-function getChecked(id){
-  const c = Array.from(document.querySelectorAll(`#${id} .chip-div`)).filter(e=>e.classList.contains('active')).map(e=>e.innerText);
-  let mId = ''; if(id.includes('spv')) mId = 'inputSupervisorLainnya'; if(id.includes('foreman')) mId = 'inputForemanLainnya'; if(id.includes('checker')) mId = 'inputCheckerLainnya';
-  const m = document.getElementById(mId).value.trim(); if(m) c.push(m);
-  return c.join(', ');
-}
-
-function copyReport(isMalam){
-  const shift = document.getElementById('inputShift').value;
-  const date = document.getElementById('inputTanggal').value.split('-');
-  const fmtDate = date.length===3 ? `${date[2]}/${["JAN","FEB","MAR","APR","MEI","JUN","JUL","AGU","SEP","OKT","NOV","DES"][parseInt(date[1])-1]}/${date[0].slice(-2)}` : '-';
-
-  let txt = `*CHP OPERATION*\n*${shift}*\n*${fmtDate}*\n\nSupervisor : ${getChecked('spvContainer')}\nForeman   : ${getChecked('foremanContainer')}\nChecker      : ${getChecked('checkerContainer')}\n\nEfektivitas Running\n`;
-  ['SD1','SD2','SD3'].forEach(sd => txt += `- ${sd} = ${(document.getElementById(`eff-${sd}`).dataset.copy||'-')}\n`);
-  txt += `\n`;
-
-  const val = (id) => parseFloat(document.getElementById(id).value)||0;
-  const calc = (b) => isMalam ? (val(`${b}-trip-malam`)-val(`${b}-trip-siang`)) : val(`${b}-trip-siang`);
-  const mt=calc('mha'), kt=calc('kai'), bt=calc('buma'), tot=mt+kt+bt;
-  const tip=val('inputTippingRom'), trans=val('inputTransferRom');
-
-  txt += `Hauling\nMHA    : ${mt} TRIP\nBUMA   : ${bt} TRIP\nKAI    : ${kt} TRIP\nIP     : 0 TRIP\nTotal Hauling : ${tot} Trip\n\n`;
-  txt += `TIPPING ROM        = ${tip} Trip\nTRANSFER ROM   = ${trans} Trip\nTRANSFER ROM + HAULING = ${trans+tot} Trip\n\n`;
-
-  const suf = isMalam ? 'malam' : 'siang';
-  txt += `Unit 2 Trip\n- MHA   = ${document.getElementById(`mha-res-${suf}`).innerText} Unit\n- BUMA  = ${document.getElementById(`buma-res-${suf}`).innerText} Unit\n- KAI   = ${document.getElementById(`kai-res-${suf}`).innerText} Unit\n\n`;
-
-  txt += `Unit SDT Running:\n`;
-  if(sdtData.length === 0) txt += `(List Kosong)\n`;
-  else sdtData.forEach((d,i) => txt += `${i+1}.SDT ${d.unit} ${d.driver?`(${d.driver})`:''} : ${d.trip?d.trip+' Trip':''} ${d.ket?`*${d.ket}*`:''}\n`);
-
-  // copy text
-  const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-  showToast('Teks berhasil disalin!');
-
-  // save history object
-  const historyObj = {
-    date: document.getElementById('inputTanggal').value,
-    shift: shift,
-    spv: getChecked('spvContainer'),
-    frm: getChecked('foremanContainer'),
-    chk: getChecked('checkerContainer'),
-    summary: txt,
-    total: tot,
-    ts: Date.now()
-  };
-
-  // save to firestore if available else local
-  if(useFirestore && db){
-    db.collection('history').add(historyObj).then(docRef=>{
-      // reload history from server
-      loadHistoryFromServer();
-      showToast('History tersimpan di server');
-      // auto go home
-      setTimeout(()=> showPage('home'), 400);
-    }).catch(e=>{
-      console.error('save history err', e);
-      // fallback local
-      const arr = JSON.parse(localStorage.getItem('hist')||'[]'); arr.unshift(historyObj); localStorage.setItem('hist', JSON.stringify(arr)); loadHistory(); showPage('home'); showToast('Tersimpan lokal (server gagal)');
-    });
-  } else {
-    const arr = JSON.parse(localStorage.getItem('hist')||'[]'); arr.unshift(historyObj); localStorage.setItem('hist', JSON.stringify(arr)); loadHistory(); showPage('home'); showToast('Tersimpan lokal');
-  }
-}
-
-/* =========================
-   HISTORY UI load
-   ========================= */
-function loadHistory(){
-  // if online, try server first
-  if(useFirestore && db){
-    loadHistoryFromServer();
-    return;
-  }
-  const arr = JSON.parse(localStorage.getItem('hist')||'[]');
-  renderHistory(arr);
-}
-
-function loadHistoryFromServer(){
-  db.collection('history').orderBy('ts','desc').limit(50).get().then(snap=>{
-    const arr = [];
-    snap.forEach(d=> arr.push(d.data()));
-    if(arr.length) { localStorage.setItem('hist', JSON.stringify(arr)); renderHistory(arr); }
-    else {
-      const arrLocal = JSON.parse(localStorage.getItem('hist')||'[]'); renderHistory(arrLocal);
-    }
-  }).catch(e=>{
-    console.warn('load history server err', e);
-    const arrLocal = JSON.parse(localStorage.getItem('hist')||'[]'); renderHistory(arrLocal);
-  });
-}
-
-function renderHistory(arr){
-  const wrap = document.getElementById('historyList');
-  if(!arr || arr.length===0){ wrap.innerHTML = '<div class="muted">Belum ada history.</div>'; return; }
-  wrap.innerHTML = arr.map(h=>`<div class="history-item"><div><strong>${h.date || '-'} </strong><div class="muted small">${h.shift || '-'} | Total: ${h.total !== undefined ? h.total : '-'}</div></div><div><button onclick="viewDetail(${h.ts})" class="bg-white border px-3 py-1 rounded-md">Lihat</button></div></div>`).join('');
-}
-
-function viewDetail(ts){
-  const arr = JSON.parse(localStorage.getItem('hist')||'[]');
-  const it = arr.find(x=>x.ts === ts);
-  const obj = it || { summary: 'Tidak ditemukan detail. Mungkin tersimpan di server.' };
-  const w = window.open('', '_blank');
-  w.document.write('<pre style="white-space:pre-wrap;padding:12px;font-family:Inter,Arial">'+ (obj.summary || JSON.stringify(obj, null,2)) +'</pre>');
-}
-
-/* =========================
-   init onload: load firebase then UI
-   ========================= */
-window.addEventListener('load', async ()=>{
-  initUI();
-  // try load master local
-  const localMaster = JSON.parse(localStorage.getItem('master_local')||'null');
-  if(localMaster) MASTER = localMaster;
-
-  const ok = await loadFirebaseV8(4500);
-  if(ok){
-    // fetch master from server if exists
-    db.collection('settings').doc('lists').get().then(doc=>{
-      if(doc.exists){ MASTER = Object.assign(MASTER, doc.data()); localStorage.setItem('master_local', JSON.stringify(MASTER)); renderMaster(); renderUnitButtons(); }
-    }).catch(e=> console.warn('load master err', e));
-    // load history from server
-    loadHistoryFromServer();
-  } else {
-    showToast('Firebase tidak tersedia (offline mode). Gunakan GitHub Pages & Chrome untuk online.');
-    renderMaster(); renderUnitButtons();
-    loadHistory(); // local
-  }
-});
-
-/* =========================
-   Misc helpers & compatibility
-   ========================= */
-function openForm(){ showPage('form'); }
-function openAdminInline(){ openAdmin(); }
-
-/* =========================
-   Expose certain functions for inline on* attributes
-   (we used global functions earlier)
-   ========================= */
-window.switchTab = switchTab;
-window.addTimeRow = addTimeRow;
-window.updTime = updTime;
-window.delTimeRow = delTimeRow;
-window.calcConv = calcConv;
-window.calcUnit = calcUnit;
-window.toggleConfig = toggleConfig;
-window.addMaster = addMaster;
-window.renderUnitButtons = renderUnitButtons;
-window.addSdt = addSdt;
-window.delSdt = delSdt;
-window.updSdt = updSdt;
-window.renderSdtList = renderSdtList;
-window.copyReport = copyReport;
-window.getChecked = getChecked;
-window.openForm = openForm;
-window.openAdmin = openAdmin;
-window.adminRefresh = adminRefresh;
-window.handleAdminAdd = handleAdminAdd;
-window.showPage = showPage;
-window.saveMaster = saveMaster;
-window.renderMaster = renderMaster;
 </script>
+
+
+<script>
+// =============================================================
+//  BAGIAN 3B — LOGIC UTAMA FORM A + FIRESTORE HISTORY
+// =============================================================
+
+
+
+// TAMPILKAN LIST MASTER DI ADMIN
+function renderAdminPanel() {
+    document.getElementById("admin-spv-list").innerHTML =
+        masterSPV.map(n => `<div>- ${n}</div>`).join("");
+
+    document.getElementById("admin-frm-list").innerHTML =
+        masterFRM.map(n => `<div>- ${n}</div>`).join("");
+
+    document.getElementById("admin-chk-list").innerHTML =
+        masterCHK.map(n => `<div>- ${n}</div>`).join("");
+
+    document.getElementById("admin-unit-list").innerHTML =
+        masterUnits.map(n => `<div>- ${n}</div>`).join("");
+
+    document.getElementById("admin-driver-list").innerHTML =
+        masterDrivers.map(n => `<div>- ${n}</div>`).join("");
+}
+
+
+// TAMBAH ITEM MASTER
+function addAdminItem(type) {
+    const inp = document.getElementById(`admin-${type}-inp`);
+    let v = inp.value.trim();
+    if (!v) return;
+
+    if (type === "spv") masterSPV.push(v);
+    if (type === "frm") masterFRM.push(v);
+    if (type === "chk") masterCHK.push(v);
+    if (type === "unit") masterUnits.push(v.toUpperCase());
+    if (type === "driver") masterDrivers.push(v);
+
+    inp.value = "";
+    renderAdminPanel();
+}
+
+
+// SIMPAN MASTER KE FIRESTORE
+async function saveAdminMaster() {
+    const db = window._db;
+    const ref = window._doc(db, "settings", "lists");
+
+    await window._set(ref, {
+        spv: masterSPV,
+        frm: masterFRM,
+        chk: masterCHK,
+        unit: masterUnits,
+        driver: masterDrivers,
+        _adminKey: "mpadmin"  // **KUNCI ADMIN**
+    }, { merge: true });
+
+    alert("Master berhasil disimpan ke server!");
+}
+
+</script>
+// =============================================================
+//  SWITCH TAB CONVEYOR
+// =============================================================
+function switchTab(sd) {
+    activeSD = sd;
+
+    ["SD1","SD2","SD3"].forEach(n => {
+        document.getElementById(`tab-${n}`).className = 
+            `tab-btn ${n===sd ? "active" : ""}`;
+        document.getElementById(`container-${n}`).className = 
+            `space-y-2 ${n===sd ? "" : "hidden"}`;
+    });
+}
+
+
+// =============================================================
+//  CONVEYOR — TAMBAH BARIS
+// =============================================================
+function addTimeRow(sd) {
+    const idx = conveyorData[sd].length;
+
+    conveyorData[sd].push({ sh:"", sm:"", fh:"", fm:"" });
+
+    const div = document.createElement("div");
+    div.id = `row-${sd}-${idx}`;
+    div.className =
+        "grid grid-cols-12 gap-2 items-center bg-white p-2 rounded border border-slate-100 shadow-sm";
+
+    div.innerHTML = `
+        <div class="col-span-1 text-center font-bold text-slate-300 text-xs">${idx+1}</div>
+
+        <div class="col-span-5 time-box">
+            <input type="tel" maxlength="2" placeholder="HH" class="time-digit"
+                   oninput="updTime('${sd}',${idx},'sh',this)">:
+            <input type="tel" maxlength="2" placeholder="MM" class="time-digit"
+                   oninput="updTime('${sd}',${idx},'sm',this)">
+        </div>
+
+        <div class="col-span-5 time-box">
+            <input type="tel" maxlength="2" placeholder="HH" class="time-digit"
+                   oninput="updTime('${sd}',${idx},'fh',this)">:
+            <input type="tel" maxlength="2" placeholder="MM" class="time-digit"
+                   oninput="updTime('${sd}',${idx},'fm',this)">
+        </div>
+
+        <div class="col-span-1 text-center">
+            <button onclick="delTimeRow('${sd}',${idx})"
+                class="text-slate-300 hover:text-red-500 font-bold">×</button>
+        </div>
+    `;
+
+    document.getElementById(`container-${sd}`).appendChild(div);
+}
+
+
+// =============================================================
+//  CONVEYOR — UPDATE INPUT WAKTU
+// =============================================================
+function updTime(sd, idx, field, el) {
+    let v = el.value.replace(/\D/g,"");
+
+    if (v.length > 2) v = v.slice(0,2);
+    if (v > 23 && (field === "sh" || field === "fh")) v = "23";
+    if (v > 59 && (field === "sm" || field === "fm")) v = "59";
+
+    el.value = v;
+    conveyorData[sd][idx][field] = v;
+
+    calcConv(sd);
+
+    if (v.length === 2) {
+        let n = el.nextElementSibling;
+        if (n && n.tagName === "INPUT") n.focus();
+    }
+}
+
+
+// =============================================================
+//  CONVEYOR — HAPUS BARIS
+// =============================================================
+function delTimeRow(sd, idx) {
+    document.getElementById(`row-${sd}-${idx}`).style.display = "none";
+    conveyorData[sd][idx] = { sh:"", sm:"", fh:"", fm:"" };
+    calcConv(sd);
+}
+
+
+// =============================================================
+//  HITUNG TOTAL CONVEYOR
+// =============================================================
+function calcConv(sd) {
+    let tot = 0;
+
+    conveyorData[sd].forEach(d => {
+        if (d.sh && d.sm && d.fh && d.fm) {
+            let s = parseInt(d.sh)*60 + parseInt(d.sm);
+            let f = parseInt(d.fh)*60 + parseInt(d.fm);
+            if (f < s) f += 1440;
+            tot += (f - s);
+        }
+    });
+
+    const th = Math.floor(tot/60);
+    const tm = tot % 60;
+    document.getElementById(`res-${sd}`).innerText = `${th}j ${tm}m`;
+
+    let rem = (12*60) - tot;
+    const rh = Math.floor(Math.abs(rem)/60);
+    const rm = Math.abs(rem) % 60;
+
+    const eff = document.getElementById(`eff-${sd}`);
+
+    if (tot === 0) {
+        eff.innerText = "-";
+        eff.className = "text-[10px] font-bold text-slate-300";
+        eff.dataset.copy = "-";
+    }
+    else if (rem >= 0) {
+        eff.innerText = `${rh}j ${rm}m`;
+        eff.className = "text-[10px] font-bold text-emerald-600";
+        eff.dataset.copy = `${rh} Jam ${String(rm).padStart(2,'0')} Menit`;
+    }
+    else {
+        eff.innerText = `${rh}j ${rm}m (Over)`;
+        eff.className = "text-[10px] font-bold text-red-600";
+        eff.dataset.copy = `${rh} Jam ${String(rm).padStart(2,'0')} Menit (Kelebihan Durasi)`;
+    }
+}
+
+
+// =============================================================
+//  UNIT RUNNING (MHA/KAI/BUMA) — HITUNG
+// =============================================================
+function calcUnit(id) {
+    const v = id => parseFloat(document.getElementById(id).value) || 0;
+
+    const rs = v(`${id}-run-siang`);
+    const ts = v(`${id}-trip-siang`);
+    const rm = v(`${id}-run-malam`);
+    const tm = v(`${id}-trip-malam`);
+
+    document.getElementById(`${id}-res-siang`).innerText = ts - rs;
+    document.getElementById(`${id}-res-malam`).innerText = (tm - ts) - rm;
+
+    let tot = 0;
+    ["mha","kai","buma"].forEach(k => {
+        tot += (v(`${k}-trip-malam`) - v(`${k}-trip-siang`));
+    });
+
+    document.getElementById("grand-total").innerText = tot + " Trip";
+}
+
+
+// =============================================================
+//  SDT — TAMBAH DATA
+// =============================================================
+function addSdt(u) {
+    sdtData.push({ unit: u, driver:"", trip:"", ket:"" });
+    renderSdtList();
+
+    setTimeout(() => {
+        document.getElementById("sdtList").lastElementChild?.scrollIntoView({
+            behavior:"smooth", block:"center"
+        });
+    }, 100);
+}
+
+
+// =============================================================
+//  SDT — HAPUS
+// =============================================================
+function delSdt(i) {
+    sdtData.splice(i,1);
+    renderSdtList();
+}
+
+
+// =============================================================
+//  SDT — UPDATE
+// =============================================================
+function updSdt(i, field, value) {
+    sdtData[i][field] = value;
+}
+
+
+// =============================================================
+//  SDT — RENDER LIST
+// =============================================================
+function renderSdtList() {
+    const wrap = document.getElementById("sdtList");
+    const empty = document.getElementById("emptyMsg");
+
+    if (sdtData.length === 0) {
+        wrap.innerHTML = "";
+        empty.style.display = "block";
+        return;
+    }
+
+    empty.style.display = "none";
+
+    const driverOpts =
+        `<option value="">Driver...</option>` +
+        masterDrivers.map(d => `<option value="${d}">${d}</option>`).join("");
+
+    wrap.innerHTML = sdtData.map((d,i) => `
+        <div class="bg-white p-2 rounded-lg border border-slate-200 shadow-sm flex flex-col gap-2 relative">
+
+            <div class="flex justify-between items-center border-b border-slate-50 pb-1">
+                <span class="font-bold text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">
+                    ${d.unit}
+                </span>
+
+                <button onclick="delSdt(${i})"
+                        class="text-red-400 hover:text-red-600 p-1">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-12 gap-2 text-xs">
+
+                <div class="col-span-5">
+                    <select onchange="updSdt(${i},'driver',this.value)"
+                            class="w-full border rounded p-1 bg-white outline-none">
+                        ${driverOpts.replace(`value="${d.driver}"`,
+                                            `value="${d.driver}" selected`)}
+                    </select>
+                </div>
+
+                <div class="col-span-3 relative">
+                    <input type="number" value="${d.trip}" placeholder="0"
+                           oninput="updSdt(${i},'trip',this.value)"
+                           class="w-full border rounded p-1 text-center font-bold outline-none">
+                </div>
+
+                <div class="col-span-4">
+                    <input type="text" value="${d.ket}" placeholder="Ket..."
+                           oninput="updSdt(${i},'ket',this.value)"
+                           class="w-full border rounded p-1 text-red-500 italic outline-none">
+                </div>
+
+            </div>
+
+        </div>
+    `).join("");
+
+    lucide.createIcons();
+}
+
+
+// =============================================================
+//  GET CHECKED CHIPS
+// =============================================================
+function getChecked(container) {
+    const arr = [...document.querySelectorAll(`#${container} input:checked`)]
+        .map(e => e.parentElement.innerText.trim());
+
+    let manual = "";
+    if (container.includes("spv")) manual = document.getElementById("inputSupervisorLainnya").value;
+    if (container.includes("foreman")) manual = document.getElementById("inputForemanLainnya").value;
+    if (container.includes("checker")) manual = document.getElementById("inputCheckerLainnya").value;
+
+    if (manual.trim() !== "") arr.push(manual.trim());
+
+    return arr.join(", ");
+}
+
+
+// =============================================================
+//  SALIN LAPORAN (SIANG/MALAM)
+// =============================================================
+function copyReport(isMalam) {
+
+    const shift = document.getElementById("inputShift").value;
+    const date = document.getElementById("inputTanggal").value.split("-");
+    const bulan = ["JAN","FEB","MAR","APR","MEI","JUN","JUL","AGU","SEP","OKT","NOV","DES"];
+    const fmtDate = `${date[2]}/${bulan[parseInt(date[1])-1]}/${date[0].slice(-2)}`;
+
+    let txt = `*CHP OPERATION*\n*${shift}*\n*${fmtDate}*\n\nSupervisor : ${getChecked('spvContainer')}\nForeman   : ${getChecked('foremanContainer')}\nChecker      : ${getChecked('checkerContainer')}\n\nEfektivitas Running\n`;
+
+    ["SD1","SD2","SD3"].forEach(sd => {
+        txt += `- ${sd} = ${(document.getElementById(`eff-${sd}`).dataset.copy || "-")}\n`;
+    });
+
+    txt += `\n`;
+
+    // UNIT
+
+    const v = id => parseFloat(document.getElementById(id).value) || 0;
+    const calc = b => isMalam ? (v(`${b}-trip-malam`) - v(`${b}-trip-siang`)) : v(`${b}-trip-siang`);
+
+    let mt = calc("mha");
+    let kt = calc("kai");
+    let bt = calc("buma");
+    let tot = mt + kt + bt;
+
+    txt += `Hauling\nMHA    : ${mt} TRIP\nBUMA   : ${bt} TRIP\nKAI    : ${kt} TRIP\nIP     : 0 TRIP\nTotal Hauling : ${tot} Trip\n\n`;
+
+    const tip = v("inputTippingRom");
+    const trans = v("inputTransferRom");
+
+    txt += `TIPPING ROM        = ${tip} Trip\nTRANSFER ROM   = ${trans} Trip\nTRANSFER ROM + HAULING = ${trans+tot} Trip\n\n`;
+
+    const suf = isMalam ? "malam" : "siang";
+
+    txt += `Unit 2 Trip\n- MHA   = ${document.getElementById(`mha-res-${suf}`).innerText} Unit\n- BUMA  = ${document.getElementById(`buma-res-${suf}`).innerText} Unit\n- KAI   = ${document.getElementById(`kai-res-${suf}`).innerText} Unit\n\n`;
+
+    txt += `Unit SDT Running:\n`;
+
+    if (sdtData.length === 0) txt += `(List Kosong)\n`;
+    else {
+        sdtData.forEach((d,i) => {
+            txt += `${i+1}.SDT ${d.unit} ${d.driver?`(${d.driver})`:''} : ${d.trip?d.trip+' Trip':''} ${d.ket?`*${d.ket}*`:''}\n`;
+        });
+    }
+
+    const textarea = document.createElement("textarea");
+    textarea.value = txt;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    document.body.removeChild(textarea);
+
+    const t = document.getElementById("toast");
+    t.classList.remove("hidden","translate-y-10");
+    setTimeout(() => t.classList.add("translate-y-10"), 2000);
+    setTimeout(() => t.classList.add("hidden"), 2300);
+}
+
+
+// =============================================================
+//  SIMPAN HISTORY KE FIRESTORE
+// =============================================================
+async function saveHistory() {
+    const db = window._db;
+    const ref = window._col(db, "history");
+
+    const record = {
+        date: document.getElementById("inputTanggal").value,
+        shift: document.getElementById("inputShift").value,
+        total: document.getElementById("grand-total").innerText,
+        time: Date.now()
+    };
+
+    await window._add(ref, record);
+
+    alert("Form berhasil disimpan!");
+    navTo("home");
+}
+
+
+// =============================================================
+//  LOAD HISTORY DI HOME PAGE
+// =============================================================
+function loadHistoryRealtime() {
+    const db = window._db;
+    const ref = window._col(db, "history");
+
+    window._listen(ref, snap => {
+        const list = document.getElementById("history-list");
+        let html = "";
+
+        snap.forEach(doc => {
+            const d = doc.data();
+
+            html += `
+                <div class="bg-white p-3 rounded-lg shadow mb-2 border border-slate-200">
+                    <div class="font-bold">${d.date}</div>
+                    <div class="text-xs text-slate-500">${d.shift}</div>
+                    <div class="text-sm mt-1 font-semibold text-indigo-700">
+                        Total: ${d.total}
+                    </div>
+                </div>
+            `;
+        });
+
+        list.innerHTML = html;
+        lucide.createIcons();
+    });
+}
+
+
+// =============================================================
+//  NAVIGASI + INISIALISASI
+// =============================================================
+window.onload = async () => {
+    await loadMasterData();
+    await loadHistoryRealtime();
+
+    lucide.createIcons();
+};
+
+
+function navTo(page) {
+    document.getElementById("page-home").classList.add("hidden");
+    document.getElementById("page-form").classList.add("hidden");
+    document.getElementById("page-admin").classList.add("hidden");
+
+    document.getElementById(`page-${page}`).classList.remove("hidden");
+
+    if (page === "admin") renderAdminPanel();
+}
+
+</script>
+
 
 </body>
 </html>
