@@ -1,116 +1,176 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Admin - Efektivitas Running</title>
+  <meta charset="UTF-8" />
+  <title>Admin Panel</title>
   <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="p-4">
-  <h1 class="text-xl font-bold mb-4">Admin Panel</h1>
-  <button onclick="doLogin()" class="bg-amber-500 px-3 py-1 rounded">Login Admin</button>
-  <a href="index.html" class="ml-2 text-sm text-indigo-600">Kembali ke Input</a>
 
-  <div id="adminArea" class="mt-4 hidden">
-    <div id="configPanel"></div>
-    <div class="mt-4">
-      <button onclick="saveAll()" class="bg-green-600 text-white px-3 py-1 rounded">Simpan Semua</button>
+  <!-- Firebase Compat -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+
+<body class="bg-slate-100 min-h-screen p-4">
+
+  <div class="max-w-xl mx-auto bg-white p-6 rounded-lg shadow">
+
+    <h1 class="text-lg font-bold mb-4">Admin Panel</h1>
+
+    <!-- LOGIN BOX -->
+    <div id="loginBox" class="space-y-3">
+      <input id="username" class="w-full p-2 border rounded" placeholder="Username">
+      <input id="password" type="password" class="w-full p-2 border rounded" placeholder="Password">
+      <button onclick="adminLogin()" class="w-full bg-indigo-600 text-white p-2 rounded">Login</button>
+      <p id="loginError" class="text-red-600 text-sm"></p>
     </div>
-    <h2 class="mt-6 font-bold">History (terbaru)</h2>
-    <div id="histList" class="mt-2"></div>
+
+    <!-- ADMIN CONTENT -->
+    <div id="adminContent" class="hidden">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-bold">Master Data</h2>
+        <button onclick="logout()" class="text-red-600 underline text-sm">Logout</button>
+      </div>
+
+      <div id="listsContainer"></div>
+    </div>
+
   </div>
 
-  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-firestore-compat.js"></script>
+<script>
+/* -----------------------------------
+   FIREBASE CONFIG
+----------------------------------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyDGPkoewPcjffZ8ORwB3rrVAKiYtRYzuEk",
+  authDomain: "retase-20ec2.firebaseapp.com",
+  projectId: "retase-20ec2",
+  storageBucket: "retase-20ec2.appspot.com",
+  messagingSenderId: "414104675676",
+  appId: "1:414104675676:web:95f0012dadfb1743ff8d99"
+};
 
-  <script>
-  const firebaseConfig = {
-    apiKey: "AIzaS... (sama)",
-    authDomain: "retase-20ec2.firebaseapp.com",
-    projectId: "retase-20ec2",
-    storageBucket: "retase-20ec2.firebasestorage.app",
-    messagingSenderId: "414104675676",
-    appId: "1:414104675676:web:95f0012dadfb1743ff8d99"
-  };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-  // init
-  function init() {
-    let tries=0; const max=60;
-    const id=setInterval(()=>{
-      tries++;
-      if(window.firebase && firebase.firestore) {
-        clearInterval(id);
-        if(!firebase.apps || !firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        window.db = firebase.firestore();
-        loadLists();
-        loadHistory();
-      } else if(tries>=max) { clearInterval(id); alert('Firebase gagal dimuat'); }
-    },200);
+/* -----------------------------------
+   SIMPLE ADMIN LOGIN
+----------------------------------- */
+
+const ADMIN_USER = "admin";
+const ADMIN_PASS = "mpadmin";
+
+// FIRESTORE SECRET TOKEN (must match rules)
+const ADMIN_TOKEN = "A9X2-FF39-MPA-2024-SECURE";
+
+function adminLogin() {
+  const u = document.getElementById("username").value.trim();
+  const p = document.getElementById("password").value.trim();
+
+  if (u === ADMIN_USER && p === ADMIN_PASS) {
+    sessionStorage.setItem("adminkey", ADMIN_TOKEN);
+    document.getElementById("loginBox").classList.add("hidden");
+    document.getElementById("adminContent").classList.remove("hidden");
+    loadLists();
+  } else {
+    document.getElementById("loginError").innerText = "Username atau password salah!";
   }
-  init();
+}
 
-  const ADMIN_PW = 'admin';
-  let isAdmin=false;
-  let lists = { supervisors:[], foremen:[], checkers:[], pts:[], sds:[], masterUnits:[], masterDrivers:[] };
+function logout() {
+  sessionStorage.removeItem("adminkey");
+  location.reload();
+}
 
-  function doLogin(){
-    const pw = prompt('Password admin:');
-    if(pw===ADMIN_PW){ isAdmin=true; document.getElementById('adminArea').classList.remove('hidden'); alert('Login OK'); }
-    else alert('Password salah');
-  }
+/* -----------------------------------
+   LOAD LIST MASTER
+----------------------------------- */
+const LISTS_DOC = "settings/lists";
 
-  function loadLists(){
-    db.doc('settings/lists').get().then(doc=>{
-      if(doc.exists) lists = {...lists, ...doc.data()};
-      renderEditLists();
-    }).catch(e=>console.error(e));
-  }
+function loadLists() {
+  db.doc(LISTS_DOC).onSnapshot(doc => {
+    const data = doc.data() || {};
+    renderLists(data);
+  });
+}
 
-  function renderEditLists(){
-    const cp = document.getElementById('configPanel');
-    cp.innerHTML = '';
-    Object.keys(lists).forEach(key=>{
-      const arr = lists[key] || [];
-      const box = document.createElement('div');
-      box.className='p-2 border rounded mb-2 bg-white';
-      let inner = `<div class="flex justify-between items-center"><strong>${key}</strong><span>${arr.length} item</span></div>`;
-      inner += `<div class="flex flex-wrap gap-2 mt-2">`;
-      arr.forEach((v,i)=> inner += `<div class="px-2 py-1 bg-slate-100 rounded">${v} <button onclick="removeItem('${key}',${i})" class="text-red-500 ml-1">×</button></div>`);
-      inner += `</div>`;
-      inner += `<div class="mt-2"><input id="inp-${key}" placeholder="Tambah ${key}" class="border p-1 mr-2"><button onclick="addItem('${key}')" class="bg-indigo-600 text-white px-2 py-1 rounded">Tambah</button></div>`;
-      box.innerHTML = inner;
-      cp.appendChild(box);
-    });
-  }
+/* -----------------------------------
+   RENDER LIST
+----------------------------------- */
+function renderLists(data) {
+  const container = document.getElementById("listsContainer");
 
-  function addItem(key){
-    const v = document.getElementById('inp-'+key).value.trim();
-    if(!v) return;
-    lists[key] = lists[key] || []; lists[key].push(v);
-    document.getElementById('inp-'+key).value='';
-    renderEditLists();
-  }
-  function removeItem(key,i){ lists[key].splice(i,1); renderEditLists(); }
+  const items = [
+    { key: "supervisors", title: "Supervisor" },
+    { key: "foremen", title: "Foreman" },
+    { key: "checkers", title: "Checker" },
+    { key: "masterUnits", title: "Unit" },
+    { key: "masterDrivers", title: "Driver" }
+  ];
 
-  function saveAll(){
-    if(!isAdmin){ alert('Login dulu'); return; }
-    db.doc('settings/lists').set(lists, { merge:true }).then(()=>{
-      db.collection('history').add({ action:'saveLists', data:lists, by:'admin', ts: firebase.firestore.FieldValue.serverTimestamp() });
-      alert('Tersimpan');
-    }).catch(e=>{ console.error(e); alert('Gagal simpan');});
-  }
+  let html = "";
 
-  function loadHistory(){
-    db.collection('history').orderBy('ts','desc').limit(50).onSnapshot(snap=>{
-      const el = document.getElementById('histList'); el.innerHTML='';
-      snap.forEach(d=>{
-        const it = d.data();
-        const time = it.ts && it.ts.toDate? it.ts.toDate().toLocaleString() : '';
-        const div = document.createElement('div'); div.className='p-2 border-b';
-        div.innerHTML = `<div class="text-xs text-slate-500">${time} — <strong>${it.action}</strong> by ${it.by||'-'}</div><div class="text-sm">${JSON.stringify(it.data||it)}</div>`;
-        el.appendChild(div);
-      });
-    });
-  }
-  </script>
+  items.forEach(it => {
+    const arr = data[it.key] || [];
+    html += `
+      <div class="mb-6 p-3 border rounded bg-slate-50">
+        <h3 class="font-bold mb-2">${it.title}</h3>
+
+        <div class="flex flex-wrap gap-2 mb-2">
+          ${arr.map((v,i)=>`
+            <span class="px-2 py-1 bg-white border rounded flex items-center gap-2">
+              ${v}
+              <button onclick="removeItem('${it.key}', ${i})" class="text-red-600">×</button>
+            </span>
+          `).join("")}
+        </div>
+
+        <div class="flex gap-2">
+          <input id="inp-${it.key}" class="flex-1 p-2 border rounded" placeholder="Tambah ${it.title}">
+          <button onclick="addItem('${it.key}')" class="px-3 bg-indigo-600 text-white rounded">Tambah</button>
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+}
+
+/* -----------------------------------
+   ADD / REMOVE ITEM
+----------------------------------- */
+function addItem(key) {
+  const inp = document.getElementById("inp-" + key);
+  const value = inp.value.trim();
+  if (!value) return;
+
+  const token = sessionStorage.getItem("adminkey"); 
+  if (!token) return alert("Tidak punya akses!");
+
+  db.doc(LISTS_DOC).get().then(doc => {
+    const data = doc.data() || {};
+    const arr = data[key] || [];
+    arr.push(value);
+
+    db.doc(LISTS_DOC).set({ [key]: arr, _adminKey: token }, { merge: true });
+    inp.value = "";
+  });
+}
+
+function removeItem(key, index) {
+  const token = sessionStorage.getItem("adminkey");
+  if (!token) return alert("Tidak punya akses!");
+
+  db.doc(LISTS_DOC).get().then(doc => {
+    const data = doc.data() || {};
+    const arr = data[key] || [];
+
+    arr.splice(index, 1);
+
+    db.doc(LISTS_DOC).set({ [key]: arr, _adminKey: token }, { merge: true });
+  });
+}
+
+</script>
+
 </body>
 </html>
