@@ -3,143 +3,212 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Efektivitas Running - Input</title>
+  <title>Efektivitas Running (Input)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest"></script>
-  <style>body{font-family:Inter,system-ui,...}/* singkatkan css */</style>
+  <style>body{font-family:'Inter',sans-serif;background:#0f1724;color:#e6eef8} .card{background:#0b1220;border-radius:10px;padding:18px;margin-bottom:16px}</style>
 </head>
-<body class="pb-24">
-  <div class="p-4 max-w-3xl mx-auto">
-    <div class="flex justify-between items-center mb-4">
+<body class="p-4">
+
+  <div class="max-w-3xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
       <h1 class="text-xl font-bold">Efektivitas Running (Input)</h1>
-      <div class="flex gap-2">
-        <a href="admin.html" class="bg-slate-200 px-3 py-1 rounded text-sm">Admin</a>
-      </div>
+      <a href="admin.html" class="bg-slate-700 text-white px-3 py-1 rounded">Admin</a>
     </div>
 
-    <!-- minimal form area (pakai desainmu sebelumnya) -->
-    <div id="unitButtons" class="mb-4"></div>
+    <div id="unitsArea" class="card">
+      <h2 class="font-bold mb-2">Unit (klik untuk tambah SDT)</h2>
+      <div id="unitButtons" class="flex flex-wrap gap-2"></div>
+    </div>
 
-    <div id="sdtList" class="space-y-2"></div>
-    <div id="emptyMsg" class="text-center py-8 italic text-slate-400">Belum ada data. Klik tombol unit di atas.</div>
+    <div id="sdtArea" class="card">
+      <h2 class="font-bold mb-2">Daftar SDT</h2>
+      <div id="sdtList"></div>
+      <div id="emptyMsg" class="text-slate-400 italic mt-4">Belum ada data. Klik tombol unit di atas.</div>
+    </div>
 
-    <div class="mt-6">
+    <div class="mt-4">
       <button onclick="refreshNow()" class="bg-indigo-600 text-white px-4 py-2 rounded">Refresh</button>
     </div>
+
+    <div id="log" class="mt-4 text-xs text-slate-400"></div>
   </div>
 
   <!-- Firebase compat SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-firestore-compat.js"></script>
 
-  <script>
-  // --- PASTE FIREBASE CONFIG DI SINI (gunakan config project-mu) ---
-  const firebaseConfig = {
-    apiKey: "AIzaS... (dari project)",
-    authDomain: "retase-20ec2.firebaseapp.com",
-    projectId: "retase-20ec2",
-    storageBucket: "retase-20ec2.firebasestorage.app",
-    messagingSenderId: "414104675676",
-    appId: "1:414104675676:web:95f0012dadfb1743ff8d99"
-  };
+<script>
+/* ========== CONFIG FIREBASE ========== */
+// Paste config projectmu (sudah kamu pake sebelumnya)
+const firebaseConfig = {
+  apiKey: "AIzaSyDGPkoewPcjffZ8ORwB3rrVAKiYtRYzuEk",
+  authDomain: "retase-20ec2.firebaseapp.com",
+  projectId: "retase-20ec2",
+  storageBucket: "retase-20ec2.firebasestorage.app",
+  messagingSenderId: "414104675676",
+  appId: "1:414104675676:web:95f0012dadfb1743ff8d99"
+};
 
-  // safe init (tunggu SDK)
-  function initFirebaseAndStart() {
-    let tries = 0;
-    const max = 60;
-    const t = setInterval(()=> {
-      tries++;
-      if(window.firebase && firebase.firestore) {
-        clearInterval(t);
-        if(!firebase.apps || !firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        window.db = firebase.firestore();
-        startApp();
-      } else if(tries>=max) {
-        clearInterval(t);
-        alert('Firebase SDK gagal dimuat. Periksa koneksi atau buka di Chrome.');
+/* ========== STATE ========== */
+let db;
+let masterUnits = ["01-F","02-F","03-F","3A-F","05-F","08-P","09-P","10-P","25-P"];
+let masterDrivers = [];
+let sdtData = [];
+
+/* ========== SAFE INIT (tunggu SDK termuat) ========== */
+function waitForFirebase() {
+  let tries=0;
+  const id = setInterval(()=> {
+    tries++;
+    if(window.firebase && firebase.firestore) {
+      clearInterval(id);
+      try {
+        if(!firebase.apps || firebase.apps.length===0) firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+        log('Firebase siap. Subscribe settings & sdt...');
+        subscribeLists();
+        subscribeSdtList();
+      } catch(e) {
+        console.error('init error', e);
+        alert('Gagal inisialisasi Firebase: '+e.message);
       }
-    }, 200);
-  }
-  initFirebaseAndStart();
+    } else if(tries>60) {
+      clearInterval(id);
+      alert('Firebase SDK gagal dimuat. Buka di Chrome dan periksa koneksi.');
+    }
+  },200);
+}
+waitForFirebase();
 
-  // application logic
-  let masterUnits = ["01-F","02-F","03-F","3A-F","05-F","08-P","09-P","10-P","25-P"];
-  let masterDrivers = [];
-  let sdtData = [];
+/* ========== HELPERS ========== */
+function log(msg) {
+  const el = document.getElementById('log');
+  el.innerText = (new Date()).toLocaleTimeString() + ' — ' + msg;
+  console.log(msg);
+}
 
-  function startApp() {
-    subscribeLists();
-    subscribeSdtList();
-  }
-
-  // subscribe settings/lists doc
-  function subscribeLists() {
+/* ========== SUBSCRIBE settings/lists ========== */
+function subscribeLists() {
+  try {
     db.doc('settings/lists').onSnapshot(doc => {
-      if(!doc.exists) return;
-      const data = doc.data();
+      if(!doc.exists) {
+        log('settings/lists belum ada. Admin harus buat lewat admin.html');
+        renderUnitButtons(); // pakai default jika belum ada
+        return;
+      }
+      const data = doc.data() || {};
       masterUnits = data.masterUnits || masterUnits;
       masterDrivers = data.masterDrivers || [];
+      log('settings/lists diterima: ' + (masterUnits.length) + ' units, ' + (masterDrivers.length) + ' drivers');
       renderUnitButtons();
-    }, err => console.error(err));
+    }, err => {
+      console.error('listen lists err', err);
+      log('Error listen lists: ' + err.message);
+    });
+  } catch(e) {
+    console.error('subscribeLists error', e);
   }
+}
 
-  function renderUnitButtons() {
-    const el = document.getElementById('unitButtons');
-    el.innerHTML = masterUnits.map(u => `<button onclick="addSdt('${u}')" class="border px-2 py-1 mr-2 mb-2 rounded">${u}</button>`).join('');
-  }
+/* ========== RENDER UNIT BUTTONS ========== */
+function renderUnitButtons() {
+  const el = document.getElementById('unitButtons');
+  el.innerHTML = '';
+  (masterUnits || []).forEach(u => {
+    const b = document.createElement('button');
+    b.className = 'px-3 py-1 bg-slate-800 text-white rounded';
+    b.innerText = u;
+    b.onclick = ()=> addSdt(u);
+    el.appendChild(b);
+  });
+}
 
-  // subscribe sdt
-  function subscribeSdtList() {
-    db.collection('sdt').orderBy('createdAt').onSnapshot(snap => {
+/* ========== SUBSCRIBE sdt collection ========== */
+function subscribeSdtList() {
+  try {
+    db.collection('sdt').orderBy('createdAt','desc').onSnapshot(snap => {
       sdtData = [];
       snap.forEach(d => sdtData.push({ id:d.id, ...d.data() }));
       renderSdtList();
-    }, err => console.error(err));
+      log('sdt updated: ' + sdtData.length + ' items');
+    }, err => {
+      console.error('listen sdt err', err);
+      log('Error listen sdt: ' + err.message);
+    });
+  } catch(e) {
+    console.error('subscribeSdtList error', e);
   }
+}
 
-  function renderSdtList() {
-    const c = document.getElementById('sdtList');
-    const m = document.getElementById('emptyMsg');
-    if(sdtData.length===0) { c.innerHTML=''; m.style.display='block'; return;}
-    m.style.display='none';
-    c.innerHTML = sdtData.map((d,i)=> {
-      const drvOpts = `<select onchange="updSdt(${i},'driver',this.value)"><option value="">-</option>` + (masterDrivers||[]).map(dd=>`<option ${dd===d.driver?'selected':''}>${dd}</option>`).join('') + '</select>';
-      return `<div class="p-3 border rounded flex gap-2 items-center">
-        <div class="w-24 font-bold">${d.unit}</div>
-        <div>${drvOpts}</div>
-        <div><input type="number" value="${d.trip||0}" onchange="updSdt(${i},'trip',this.value)" style="width:80px"></div>
-        <div><input value="${d.ket||''}" onchange="updSdt(${i},'ket',this.value)"></div>
-        <div><button onclick="delSdt(${i})" style="color:red">Hapus</button></div>
-      </div>`;
-    }).join('');
-  }
+/* ========== RENDER SDT LIST ========== */
+function renderSdtList() {
+  const c = document.getElementById('sdtList');
+  const m = document.getElementById('emptyMsg');
+  if(!sdtData || sdtData.length===0) { c.innerHTML=''; m.style.display='block'; return; }
+  m.style.display='none';
+  c.innerHTML = sdtData.map((d,i)=> {
+    const driver = d.driver || '';
+    const trip = d.trip || 0;
+    const ket = d.ket || '';
+    const driverOpts = (masterDrivers || []).map(dd => `<option ${dd===driver?'selected':''}>${dd}</option>`).join('');
+    return `
+      <div class="p-3 mb-2 bg-[#07101a] rounded grid grid-cols-12 gap-2 items-center">
+        <div class="col-span-2 font-bold">${d.unit}</div>
+        <div class="col-span-4"><select onchange="updSdt(${i},'driver',this.value)" class="w-full p-1 rounded bg-black border border-slate-700">${driverOpts}</select></div>
+        <div class="col-span-2"><input type="number" value="${trip}" onchange="updSdt(${i},'trip',this.value)" class="w-full p-1 rounded bg-black border border-slate-700 text-center"></div>
+        <div class="col-span-3"><input value="${ket}" onchange="updSdt(${i},'ket',this.value)" class="w-full p-1 rounded bg-black border border-slate-700"></div>
+        <div class="col-span-1 text-right"><button onclick="delSdt(${i})" class="text-red-400">Hapus</button></div>
+      </div>
+    `;
+  }).join('');
+}
 
-  // add sdt - public (no login)
-  function addSdt(unit) {
-    const payload = { unit, driver:'', trip:0, ket:'', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
-    db.collection('sdt').add(payload).then(()=>{
-      // write history
-      db.collection('history').add({ action:'addSdt', unit, by:'public', ts: firebase.firestore.FieldValue.serverTimestamp()});
-    }).catch(e=> { console.error(e); alert('Gagal menambah SDT'); });
-  }
+/* ========== CRUD SDT (public) ========== */
+function addSdt(unit) {
+  if(!db) { alert('Database belum siap'); return; }
+  const doc = { unit, driver:'', trip:0, ket:'', createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+  db.collection('sdt').add(doc)
+    .then(()=> {
+      // log history
+      db.collection('history').add({ action:'addSdt', unit, by:'public', ts: firebase.firestore.FieldValue.serverTimestamp() }).catch(()=>{});
+      log('SDT ditambahkan: ' + unit);
+    })
+    .catch(e => {
+      console.error('addSdt', e);
+      alert('Gagal menambah SDT: ' + e.message);
+    });
+}
 
-  function delSdt(i) {
-    const id = sdtData[i]?.id; if(!id) return;
-    db.collection('sdt').doc(id).delete().then(()=>{
-      db.collection('history').add({ action:'delSdt', id, by:'public', ts: firebase.firestore.FieldValue.serverTimestamp()});
-    }).catch(e=>{console.error(e); alert('Gagal hapus');});
-  }
+function delSdt(i) {
+  const id = sdtData[i]?.id; if(!id) return;
+  db.collection('sdt').doc(id).delete()
+    .then(()=> {
+      db.collection('history').add({ action:'delSdt', id, by:'public', ts: firebase.firestore.FieldValue.serverTimestamp() }).catch(()=>{});
+      log('SDT dihapus: ' + id);
+    })
+    .catch(e => { console.error(e); alert('Gagal hapus: ' + e.message); });
+}
 
-  function updSdt(i,f,v) {
-    const id = sdtData[i]?.id; if(!id) return;
-    const payload = {}; payload[f] = (f==='trip'? parseInt(v)||0 : v);
-    db.collection('sdt').doc(id).set(payload, { merge:true }).then(()=>{
-      db.collection('history').add({ action:'updSdt', id, field:f, value:payload[f], by:'public', ts: firebase.firestore.FieldValue.serverTimestamp()});
-    }).catch(e=>console.error(e));
-  }
+function updSdt(i, field, value) {
+  const id = sdtData[i]?.id; if(!id) return;
+  const payload = {};
+  payload[field] = (field==='trip') ? parseInt(value)||0 : value;
+  db.collection('sdt').doc(id).set(payload, { merge:true })
+    .then(()=> {
+      db.collection('history').add({ action:'updSdt', id, field, value: payload[field], by:'public', ts: firebase.firestore.FieldValue.serverTimestamp() }).catch(()=>{});
+      log('SDT updated: ' + id + ' ' + field + '=' + payload[field]);
+    })
+    .catch(e => { console.error(e); alert('Gagal update: ' + e.message); });
+}
 
-  function refreshNow(){ subscribeSdtList(); subscribeLists(); }
-  </script>
+/* ========== UTILS ========== */
+function refreshNow() {
+  subscribeLists();
+  subscribeSdtList();
+}
+
+</script>
 </body>
 </html>
