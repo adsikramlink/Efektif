@@ -55,21 +55,22 @@
         .hidden { display:none !important; }
     </style>
 
-    <!-- Firebase init (module) -->
+
+    <!-- ################ Firebase init (module) ############ -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, addDoc, deleteDoc } 
             from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         window.firebaseConfig = {
-            apiKey: "AIzaSyDGPkoewPcjffZ8ORwB3rrVAKiYtRYzuEk",
-            authDomain: "retase-20ec2.firebaseapp.com",
-            projectId: "retase-20ec2",
-            storageBucket: "retase-20ec2.firebasestorage.app",
-            messagingSenderId: "414104675676",
-            appId: "1:414104675676:web:95f0012dadfb1743ff8d99",
-            measurementId: "G-64RN0GNMPW"
-        };
+  apiKey: "AIzaSyDGPkoewPcjffZ8ORwB3rrVAKiYtRYzuEk",
+  authDomain: "retase-20ec2.firebaseapp.com",
+  projectId: "retase-20ec2",
+  storageBucket: "retase-20ec2.appspot.com",   // <--- GANTI INI
+  messagingSenderId: "414104675676",
+  appId: "1:414104675676:web:95f0012dadfb1743ff8d99",
+  measurementId: "G-64RN0GNMPW"
+};
 
         const app = initializeApp(window.firebaseConfig);
         const db = getFirestore(app);
@@ -582,7 +583,14 @@ async function loadMasterData(){
     initChips('checkerContainer', masterCHK);
     renderUnitButtons();
     renderAdminPanel();
-  }catch(e){ console.error("loadMasterData", e); alert("Error load master (see console)"); }
+  }
+  
+  } catch (e) {
+  console.error("loadMasterData error", e);
+  alert("Error load master: " + (e && e.message ? e.message : JSON.stringify(e)));
+}
+  
+  
 }
 
 /* ================= ADMIN: render / add / delete / save ================= */
